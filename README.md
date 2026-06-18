@@ -210,6 +210,12 @@ Common JSON-RPC error codes:
 > 4. `<env>.json` environment file values
 > 5. `_global.json` / `_global.local.json` globals
 
+## Secret Providers
+
+Reference secrets from AWS Secrets Manager, Azure Key Vault, Google Secret Manager, HashiCorp Vault, 1Password, or Doppler directly in requests using `{{secret:alias/path}}`. Credentials come from the environment (env vars, cloud identity, CLI session) — never from config. Install the relevant cloud SDK (`optionalDependencies`) for AWS/Azure/GCP; Vault/Doppler/1Password need none.
+
+See the [Secret Providers guide](https://github.com/hsl1230/http-forge/blob/main/docs/user-guide/secret-providers.md) for setup, configuration, and CI/CD usage.
+
 ## Examples
 
 ### Run smoke tests on staging
