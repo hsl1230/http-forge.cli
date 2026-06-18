@@ -40,6 +40,7 @@ http-forge run-request --collection my-api --request get-users --include tests -
 **Optional:**
 - `--workspace <path>` — Workspace folder (default: current directory)
 - `--environment <name>` — Environment to use
+- `--var <KEY=VALUE>` — Override a variable (repeatable; takes highest priority)
 - `--include <field>` — Include extra fields (repeatable): `headers`, `cookies`, `tests`, `consoleOutput`, `report`
 - `--output <fmt>` — Output format: `json` or `table` (default: `json`)
 
@@ -59,6 +60,7 @@ http-forge run-collection \
 **Optional:**
 - `--workspace <path>` — Workspace folder (default: current directory)
 - `--environment <name>` — Environment to use
+- `--var <KEY=VALUE>` — Override a variable (repeatable; takes highest priority)
 - `--iterations <num>` — Number of iterations (default: 1)
 - `--stop-on-error` — Stop on first failure
 - `--delay <ms>` — Delay between requests (milliseconds)
@@ -82,6 +84,7 @@ http-forge run-suite \
 **Optional:**
 - `--workspace <path>` — Workspace folder (default: current directory)
 - `--environment <name>` — Environment to use
+- `--var <KEY=VALUE>` — Override a variable (repeatable; takes highest priority)
 - `--iterations <num>` — Number of iterations
 - `--stop-on-error` — Stop on first failure
 - `--delay <ms>` — Delay between requests (milliseconds)
@@ -200,6 +203,13 @@ Common JSON-RPC error codes:
 
 - `HTTP_FORGE_WORKSPACE` — Override default workspace folder
 
+> **Variable priority (highest → lowest)**
+> 1. `--var KEY=VALUE` flags on the command line
+> 2. `process.env` (CI environment variables, shell exports)
+> 3. `<env>.local.json` credential overrides (gitignored)
+> 4. `<env>.json` environment file values
+> 5. `_global.json` / `_global.local.json` globals
+
 ## Examples
 
 ### Run smoke tests on staging
@@ -211,12 +221,61 @@ http-forge run-suite \
   --stop-on-error
 ```
 
+### Override variables at runtime
+
+```bash
+# Inject a single variable
+http-forge run-request \
+  --collection my-api \
+  --request create-user \
+  --var BASE_URL=https://api.staging.example.com \
+  --var API_KEY=my-secret-key
+
+# Multiple --var flags are supported
+http-forge run-suite \
+  --suite smoke-tests \
+  --environment prod \
+  --var TIMEOUT=30000 \
+  --var RETRY_COUNT=3
+```
+
+### GitHub Actions / CI integration
+
+Variables from the shell environment are automatically available as template variables in your requests:
+
+```yaml
+- name: Run API tests
+  run: |
+    http-forge run-suite \
+      --suite smoke-tests \
+      --environment staging \
+      --stop-on-error \
+      --include report \
+      --output json
+  env:
+    API_KEY: ${{ secrets.API_KEY }}
+    BASE_URL: ${{ vars.STAGING_BASE_URL }}
+```
+
+You can also pass secrets explicitly with `--var` to override environment file values:
+
+```yaml
+- name: Run integration tests
+  run: |
+    http-forge run-collection \
+      --collection my-api \
+      --environment prod \
+      --var API_KEY=${{ secrets.PROD_API_KEY }} \
+      --var DB_HOST=${{ secrets.DB_HOST }}
+```
+
 ### Execute collection with custom variables
 
 ```bash
 http-forge run-collection \
   --collection my-api \
-  --environment dev
+  --environment dev \
+  --var BASE_URL=http://localhost:3000
 ```
 
 ### Run same test 5 times with delays

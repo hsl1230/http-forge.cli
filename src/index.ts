@@ -9,10 +9,10 @@
  */
 
 import {
-    handleMcpServer,
-    handleRunCollection,
-    handleRunRequest,
-    handleRunSuite
+  handleMcpServer,
+  handleRunCollection,
+  handleRunRequest,
+  handleRunSuite
 } from './commands';
 
 export async function main(): Promise<void> {
@@ -85,6 +85,7 @@ COMMANDS:
     Optional:
       --workspace <path>  Workspace folder (default: current directory)
       --environment <name> Environment to use
+      --var <KEY=VALUE>   Override a variable (repeatable; highest priority)
       --include <field>   Include extra fields (repeatable):
                           headers, cookies, tests, consoleOutput, report
       --output <fmt>      Output format: json or table (default: json)
@@ -95,6 +96,7 @@ COMMANDS:
     Optional:
       --workspace <path>  Workspace folder (default: current directory)
       --environment <name> Environment to use
+      --var <KEY=VALUE>   Override a variable (repeatable; highest priority)
       --iterations <num>  Number of iterations (default: 1)
       --stop-on-error     Stop on first failure
       --delay <ms>        Delay between requests
@@ -108,6 +110,7 @@ COMMANDS:
     Optional:
       --workspace <path>  Workspace folder (default: current directory)
       --environment <name> Environment to use
+      --var <KEY=VALUE>   Override a variable (repeatable; highest priority)
       --iterations <num>  Number of iterations
       --stop-on-error     Stop on first failure
       --delay <ms>        Delay between requests
@@ -122,7 +125,9 @@ EXAMPLES:
   http-forge run-request --collection my-api --request get-users
   http-forge run-request --collection my-api --request get-users --include tests --include report
   http-forge run-collection --collection my-api --environment dev --include perRequest
+  http-forge run-collection --collection my-api --environment prod --var BASE_URL=https://api.example.com --var API_KEY=$API_KEY
   http-forge run-suite --suite smoke-tests --iterations 3 --include failedOnly --include report --output json
+  http-forge run-suite --suite smoke-tests --environment staging --var TOKEN=$CI_TOKEN
 
 OPTIONS:
   --help, -h              Show this help message

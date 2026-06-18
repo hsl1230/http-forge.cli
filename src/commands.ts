@@ -193,6 +193,7 @@ export async function handleMcpServer(args: string[]): Promise<void> {
 
 export async function handleRunRequest(args: string[]): Promise<void> {
   const opts = parseArgs(args);
+  mergeProcessEnv(opts);
 
   if (!opts.collection || !opts.request) {
     console.error('Error: --collection and --request are required');
@@ -217,6 +218,7 @@ export async function handleRunRequest(args: string[]): Promise<void> {
 
 export async function handleRunCollection(args: string[]): Promise<void> {
   const opts = parseArgs(args);
+  mergeProcessEnv(opts);
 
   if (!opts.collection) {
     console.error('Error: --collection is required');
@@ -243,6 +245,7 @@ export async function handleRunCollection(args: string[]): Promise<void> {
 
 export async function handleRunSuite(args: string[]): Promise<void> {
   const opts = parseArgs(args);
+  mergeProcessEnv(opts);
 
   if (!opts.suite) {
     console.error('Error: --suite is required');
@@ -318,10 +321,26 @@ function parseArgs(args: string[]): ParsedArgs {
       if (out === 'json' || out === 'table') {
         opts.output = out;
       }
+    } else if (arg === '--var' && i + 1 < args.length) {
+      const pair = args[++i];
+      const eqIdx = pair.indexOf('=');
+      if (eqIdx > 0) {
+        const key = pair.slice(0, eqIdx);
+        const value = pair.slice(eqIdx + 1);
+        opts.variables[key] = value;
+      }
     }
   }
 
   return opts;
+}
+
+/**
+ * Merge process.env into variables at lowest priority.
+ * Explicit --var flags (already in opts.variables) take precedence.
+ */
+function mergeProcessEnv(opts: ParsedArgs): void {
+  opts.variables = { ...process.env, ...opts.variables };
 }
 
 function outputResult(result: unknown, format: 'json' | 'table'): void {
