@@ -108,6 +108,88 @@ http-forge mcp-server stop --workspace .
 - `--host <addr>` — Host to bind to (default: 127.0.0.1)
 - `--workspace <path>` — Workspace folder (default: current directory)
 
+### MCP JSON-RPC Usage
+
+After starting the server with `http-forge mcp-server start`, call the MCP endpoint at `POST /`.
+
+JSON-RPC request shape:
+
+```typescript
+interface JsonRpcRequest {
+  jsonrpc: '2.0';
+  id: string | number | null;
+  method: string;
+  params?: Record<string, unknown>;
+}
+```
+
+#### Initialize
+
+```bash
+curl -X POST http://127.0.0.1:3100 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {}
+  }'
+```
+
+#### List tools
+
+```bash
+curl -X POST http://127.0.0.1:3100 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/list"
+  }'
+```
+
+#### Call a tool
+
+```bash
+curl -X POST http://127.0.0.1:3100 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "request__my-api__get-users",
+      "arguments": {
+        "environment": "dev",
+        "include": ["tests", "report"]
+      }
+    }
+  }'
+```
+
+#### Health check
+
+```bash
+curl http://127.0.0.1:3100/health
+```
+
+#### Legacy compatibility endpoint
+
+For non-MCP clients, a compatibility endpoint is also available:
+
+```bash
+curl -X POST http://127.0.0.1:3100/tools/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "request__my-api__get-users",
+    "args": { "environment": "dev" }
+  }'
+```
+
+Common JSON-RPC error codes:
+- `-32700` Parse error (invalid JSON)
+- `-32603` Internal error (dispatch/runtime failures, including unknown method)
+
 ## Exit Codes
 
 - `0` — Success

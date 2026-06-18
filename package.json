@@ -1,6 +1,6 @@
 {
-  "name": "http-forge.cli",
-  "version": "0.1.0",
+  "name": "@http-forge/cli",
+  "version": "0.1.1",
   "description": "HTTP Forge CLI — terminal interface for collections, test suites, and MCP server",
   "main": "dist/index.js",
   "bin": {
@@ -25,6 +25,9 @@
   ],
   "author": "Henry Huang",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=20.0.0"
   },
