@@ -5,12 +5,14 @@
  * - mcp-server: Start MCP server
  * - run-request: Execute a single request
  * - run-collection: Execute a collection
+ * - run-folder: Execute a folder within a collection
  * - run-suite: Execute a test suite
  */
 
 import {
   handleMcpServer,
   handleRunCollection,
+  handleRunFolder,
   handleRunRequest,
   handleRunSuite
 } from './commands';
@@ -37,6 +39,10 @@ export async function main(): Promise<void> {
 
       case 'run-collection':
         await handleRunCollection(args.slice(1));
+        break;
+
+      case 'run-folder':
+        await handleRunFolder(args.slice(1));
         break;
 
       case 'run-suite':
@@ -80,9 +86,11 @@ COMMANDS:
 
   run-request             Execute a single request
     Required:
-      --collection <id>   Collection ID
-      --request <id>      Request ID
+      --collection <ref>  Collection (id, slug, or name)
+      --request <ref>     Request (id, slug, or name)
     Optional:
+      --folder <path>     Scope request resolution to this folder
+                          (slash path of id/slug/name segments)
       --workspace <path>  Workspace folder (default: current directory)
       --environment <name> Environment to use
       --var <KEY=VALUE>   Override a variable (repeatable; highest priority)
@@ -92,8 +100,26 @@ COMMANDS:
 
   run-collection          Execute a collection
     Required:
-      --collection <id>   Collection ID
+      --collection <ref>  Collection (id, slug, or name)
     Optional:
+      --workspace <path>  Workspace folder (default: current directory)
+      --environment <name> Environment to use
+      --var <KEY=VALUE>   Override a variable (repeatable; highest priority)
+      --iterations <num>  Number of iterations (default: 1)
+      --stop-on-error     Stop on first failure
+      --delay <ms>        Delay between requests
+      --include <field>   Include extra fields (repeatable):
+                          perRequest, failedOnly, consoleOutput, report
+      --output <fmt>      Output format: json or table (default: json)
+
+  run-folder              Execute the requests under a collection folder
+    Required:
+      --collection <ref>  Collection (id, slug, or name)
+      --folder <path>     Folder path (slash-separated id/slug/name segments,
+                          e.g. "Auth/Login")
+    Optional:
+      --recursive <bool>  Include nested subfolders (default: true);
+                          use --no-recursive for this level only
       --workspace <path>  Workspace folder (default: current directory)
       --environment <name> Environment to use
       --var <KEY=VALUE>   Override a variable (repeatable; highest priority)
@@ -123,11 +149,21 @@ EXAMPLES:
   http-forge mcp-server status --workspace .
   http-forge mcp-server stop --workspace .
   http-forge run-request --collection my-api --request get-users
+  http-forge run-request --collection my-api --request "Get Users" --folder Auth
   http-forge run-request --collection my-api --request get-users --include tests --include report
   http-forge run-collection --collection my-api --environment dev --include perRequest
   http-forge run-collection --collection my-api --environment prod --var BASE_URL=https://api.example.com --var API_KEY=$API_KEY
+  http-forge run-folder --collection my-api --folder "Auth/Login" --environment dev --include perRequest
+  http-forge run-folder --collection my-api --folder Users --no-recursive --include report
   http-forge run-suite --suite smoke-tests --iterations 3 --include failedOnly --include report --output json
   http-forge run-suite --suite smoke-tests --environment staging --var TOKEN=$CI_TOKEN
+
+NOTES:
+  --collection, --request, and each --folder segment accept an id, a slug, or a
+  display name. Resolution tries id, then slug, then name, and stops at the
+  first match. If a name matches multiple items, the command lists the
+  candidates and exits non-zero — pass the id or slug to disambiguate. How each
+  value resolved is printed to stderr.
 
 OPTIONS:
   --help, -h              Show this help message

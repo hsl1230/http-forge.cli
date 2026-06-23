@@ -4,7 +4,8 @@
  * Implementations of CLI commands that use the runtime APIs.
  */
 
-import { createMcpRuntime, runCollection, runRequest, runSuite } from '@http-forge/core';
+import type { ResolutionInfo } from '@http-forge/core';
+import { createMcpRuntime, runCollection, runFolder, runRequest, runSuite } from '@http-forge/core';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -194,22 +195,31 @@ export async function handleMcpServer(args: string[]): Promise<void> {
 export async function handleRunRequest(args: string[]): Promise<void> {
   const opts = parseArgs(args);
   mergeProcessEnv(opts);
+  const restore = installStdoutGuard();
 
   if (!opts.collection || !opts.request) {
     console.error('Error: --collection and --request are required');
     process.exit(2);
   }
 
-  const result = await runRequest({
-    workspaceFolder: opts.workspace,
-    collectionId: opts.collection,
-    requestId: opts.request,
-    environment: opts.environment,
-    variables: opts.variables,
-    include: opts.include
-  });
-
-  outputResult(result, opts.output);
+  try {
+    const result = await runRequest({
+      workspaceFolder: opts.workspace,
+      collectionRef: opts.collection,
+      requestRef: opts.request,
+      folderRef: opts.folder,
+      onResolve: logResolution,
+      environment: opts.environment,
+      variables: opts.variables,
+      include: opts.include
+    });
+    outputResult(result, opts.output);
+  } catch (err) {
+    console.error('Error:', (err as Error).message);
+    process.exit(2);
+  } finally {
+    restore();
+  }
 }
 
 // ────────────────────────────────────────────────────────
@@ -219,24 +229,73 @@ export async function handleRunRequest(args: string[]): Promise<void> {
 export async function handleRunCollection(args: string[]): Promise<void> {
   const opts = parseArgs(args);
   mergeProcessEnv(opts);
+  const restore = installStdoutGuard();
 
   if (!opts.collection) {
     console.error('Error: --collection is required');
     process.exit(2);
   }
 
-  const result = await runCollection({
-    workspaceFolder: opts.workspace,
-    collectionId: opts.collection,
-    environment: opts.environment,
-    variables: opts.variables,
-    iterations: opts.iterations,
-    stopOnError: opts.stopOnError,
-    delay: opts.delay,
-    include: opts.include
-  });
+  try {
+    const result = await runCollection({
+      workspaceFolder: opts.workspace,
+      collectionRef: opts.collection,
+      onResolve: logResolution,
+      environment: opts.environment,
+      variables: opts.variables,
+      iterations: opts.iterations,
+      stopOnError: opts.stopOnError,
+      delay: opts.delay,
+      include: opts.include
+    });
+    outputResult(result, opts.output);
+  } catch (err) {
+    console.error('Error:', (err as Error).message);
+    process.exit(2);
+  } finally {
+    restore();
+  }
+}
 
-  outputResult(result, opts.output);
+// ────────────────────────────────────────────────────────
+// Run Folder Command
+// ────────────────────────────────────────────────────────
+
+export async function handleRunFolder(args: string[]): Promise<void> {
+  const opts = parseArgs(args);
+  mergeProcessEnv(opts);
+  const restore = installStdoutGuard();
+
+  if (!opts.collection) {
+    console.error('Error: --collection is required');
+    process.exit(2);
+  }
+  if (!opts.folder) {
+    console.error('Error: --folder is required');
+    process.exit(2);
+  }
+
+  try {
+    const result = await runFolder({
+      workspaceFolder: opts.workspace,
+      collectionRef: opts.collection,
+      folderRef: opts.folder,
+      onResolve: logResolution,
+      recursive: opts.recursive,
+      environment: opts.environment,
+      variables: opts.variables,
+      iterations: opts.iterations,
+      stopOnError: opts.stopOnError,
+      delay: opts.delay,
+      include: opts.include
+    });
+    outputResult(result, opts.output);
+  } catch (err) {
+    console.error('Error:', (err as Error).message);
+    process.exit(2);
+  } finally {
+    restore();
+  }
 }
 
 // ────────────────────────────────────────────────────────
@@ -246,25 +305,32 @@ export async function handleRunCollection(args: string[]): Promise<void> {
 export async function handleRunSuite(args: string[]): Promise<void> {
   const opts = parseArgs(args);
   mergeProcessEnv(opts);
+  const restore = installStdoutGuard();
 
   if (!opts.suite) {
     console.error('Error: --suite is required');
     process.exit(2);
   }
 
-  const result = await runSuite({
-    workspaceFolder: opts.workspace,
-    suiteId: opts.suite,
-    environment: opts.environment,
-    variables: opts.variables,
-    iterations: opts.iterations,
-    stopOnError: opts.stopOnError,
-    delay: opts.delay,
-    requestFilter: opts.requestFilter,
-    include: opts.include
-  });
-
-  outputResult(result, opts.output);
+  try {
+    const result = await runSuite({
+      workspaceFolder: opts.workspace,
+      suiteId: opts.suite,
+      environment: opts.environment,
+      variables: opts.variables,
+      iterations: opts.iterations,
+      stopOnError: opts.stopOnError,
+      delay: opts.delay,
+      requestFilter: opts.requestFilter,
+      include: opts.include
+    });
+    outputResult(result, opts.output);
+  } catch (err) {
+    console.error('Error:', (err as Error).message);
+    process.exit(2);
+  } finally {
+    restore();
+  }
 }
 
 // ────────────────────────────────────────────────────────
@@ -276,6 +342,8 @@ interface ParsedArgs {
   collection?: string;
   request?: string;
   suite?: string;
+  folder?: string;
+  recursive: boolean;
   environment?: string;
   variables: Record<string, unknown>;
   iterations?: number;
@@ -289,6 +357,7 @@ interface ParsedArgs {
 function parseArgs(args: string[]): ParsedArgs {
   const opts: ParsedArgs = {
     workspace: process.cwd(),
+    recursive: true,
     variables: {},
     stopOnError: false,
     include: [],
@@ -306,6 +375,12 @@ function parseArgs(args: string[]): ParsedArgs {
       opts.request = args[++i];
     } else if (arg === '--suite' && i + 1 < args.length) {
       opts.suite = args[++i];
+    } else if (arg === '--folder' && i + 1 < args.length) {
+      opts.folder = args[++i];
+    } else if (arg === '--recursive' && i + 1 < args.length) {
+      opts.recursive = args[++i] !== 'false';
+    } else if (arg === '--no-recursive') {
+      opts.recursive = false;
     } else if (arg === '--environment' && i + 1 < args.length) {
       opts.environment = args[++i];
     } else if (arg === '--iterations' && i + 1 < args.length) {
@@ -343,11 +418,47 @@ function mergeProcessEnv(opts: ParsedArgs): void {
   opts.variables = { ...process.env, ...opts.variables };
 }
 
+/**
+ * Print how a reference (collection/folder/request) was resolved to stderr so
+ * resolution is transparent and visible in script logs. Goes to stderr to keep
+ * stdout reserved for the JSON/table result.
+ */
+function logResolution(info: ResolutionInfo): void {
+  if (info.kind === 'folder') {
+    console.error(`Resolved --folder "${info.value}" -> ${info.id}`);
+    return;
+  }
+  const loc = info.path ? ` (${info.path})` : '';
+  console.error(`Resolved --${info.kind} "${info.value}" by ${info.tier} -> ${info.id}${loc}`);
+}
+
+/**
+ * Guard stdout so it carries ONLY the machine-readable result.
+ *
+ * Core and its dependencies emit diagnostics through `console.log` (e.g. the
+ * module loader, notification adapter, HTTP client). `console.log` writes to
+ * stdout, which would corrupt JSON output that callers pipe/parse. While a run
+ * is in progress we route `console.log`/`console.info` to stderr; the result is
+ * written separately via `process.stdout.write` in {@link outputResult}.
+ *
+ * @returns a restore function that reinstates the original console methods.
+ */
+function installStdoutGuard(): () => void {
+  const originalLog = console.log;
+  const originalInfo = console.info;
+  console.log = (...args: unknown[]): void => console.error(...args);
+  console.info = (...args: unknown[]): void => console.error(...args);
+  return () => {
+    console.log = originalLog;
+    console.info = originalInfo;
+  };
+}
+
 function outputResult(result: unknown, format: 'json' | 'table'): void {
   if (format === 'json') {
-    console.log(JSON.stringify(result, null, 2));
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   } else {
     // Table format for human readability
-    console.log('Result:', result);
+    process.stdout.write(`Result: ${typeof result === 'string' ? result : JSON.stringify(result, null, 2)}\n`);
   }
 }
