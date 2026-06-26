@@ -1,0 +1,171 @@
+name: 'HTTP Forge Run Suite'
+description: >
+  Run an HTTP Forge test suite, collection, or folder and publish JUnit results.
+  Exits non-zero when any test fails, so it can gate a CI build.
+
+branding:
+  icon: 'zap'
+  color: 'blue'
+
+inputs:
+  workspace:
+    description: >
+      Path to the HTTP Forge workspace folder (the directory that contains
+      collections/, suites/, environments/).  Relative to the repository root.
+    required: false
+    default: '.'
+
+  suite:
+    description: Suite ID to run.
+    required: false
+
+  collection:
+    description: >
+      Collection slug, id, or display name to run.  Mutually exclusive with
+      `suite` — provide exactly one of `suite`, `collection`, or `collection` + `folder`.
+    required: false
+
+  folder:
+    description: >
+      Slash-separated folder path within the collection to run
+      (e.g. "Auth/Login").  Requires `collection` to be set.
+      When provided the action runs `run-folder` instead of `run-collection`.
+    required: false
+    default: ''
+
+  recursive:
+    description: >
+      Include nested sub-folders when running a folder (default: true).
+      Set to "false" to run only the direct children of the folder.
+    required: false
+    default: 'true'
+
+  environment:
+    description: >
+      Environment name to activate (must exist in the workspace
+      environments/ folder).
+    required: false
+    default: ''
+
+  iterations:
+    description: Number of iterations to run (default 1).
+    required: false
+    default: '1'
+
+  stop_on_error:
+    description: Stop execution on the first failure.
+    required: false
+    default: 'false'
+
+  reporters:
+    description: >
+      Comma-separated list of reporter specs to enable. Each spec is either
+      a reporter name (e.g. "junit") or a name with an explicit output path
+      (e.g. "junit:test-results/junit.xml"). Supported names: html, junit.
+      Example: "junit:test-results/junit.xml" or "html,junit:results/junit.xml"
+    required: false
+    default: 'junit:test-results/junit.xml'
+
+  extra_args:
+    description: >
+      Any additional raw CLI flags to append to the http-forge command,
+      e.g. "--var BASE_URL=https://staging.example.com".
+    required: false
+    default: ''
+
+  node_version:
+    description: Node.js version to use (must be ≥ 20).
+    required: false
+    default: '20'
+
+  cli_version:
+    description: >
+      @http-forge/cli npm version to install.  Accepts any npm semver range,
+      e.g. "latest", "0.2.x", "^0.2.0".
+    required: false
+    default: 'latest'
+
+outputs:
+  all_passed:
+    description: '"true" when every request assertion passed, "false" otherwise.'
+    value: ${{ steps.run.outputs.all_passed }}
+
+runs:
+  using: 'composite'
+  steps:
+    # ── 1. Install Node ────────────────────────────────────────────────────────
+    - name: Set up Node.js ${{ inputs.node_version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+
+    # ── 2. Install the CLI ─────────────────────────────────────────────────────
+    - name: Install @http-forge/cli@${{ inputs.cli_version }}
+      shell: bash
+      run: npm install --global @http-forge/cli@${{ inputs.cli_version }}
+
+    # ── 3. Build the run command ───────────────────────────────────────────────
+    - name: Run HTTP Forge
+      id: run
+      shell: bash
+      env:
+        HF_WORKSPACE: ${{ inputs.workspace }}
+        HF_SUITE: ${{ inputs.suite }}
+        HF_COLLECTION: ${{ inputs.collection }}
+        HF_FOLDER: ${{ inputs.folder }}
+        HF_RECURSIVE: ${{ inputs.recursive }}
+        HF_ENV: ${{ inputs.environment }}
+        HF_ITERATIONS: ${{ inputs.iterations }}
+        HF_STOP_ON_ERROR: ${{ inputs.stop_on_error }}
+        HF_REPORTERS: ${{ inputs.reporters }}
+        HF_EXTRA_ARGS: ${{ inputs.extra_args }}
+      run: |
+        set -euo pipefail
+
+        # Build the subcommand (suite, folder, or collection)
+        if [[ -n "${HF_SUITE}" ]]; then
+          CMD="run-suite --suite ${HF_SUITE}"
+        elif [[ -n "${HF_COLLECTION}" && -n "${HF_FOLDER}" ]]; then
+          CMD="run-folder --collection ${HF_COLLECTION} --folder ${HF_FOLDER}"
+          [[ "${HF_RECURSIVE}" == "false" ]] && CMD="${CMD} --no-recursive"
+        elif [[ -n "${HF_COLLECTION}" ]]; then
+          CMD="run-collection --collection ${HF_COLLECTION}"
+        else
+          echo "::error::Provide 'suite', 'collection', or 'collection' + 'folder'."
+          exit 2
+        fi
+
+        # Common flags
+        CMD="${CMD} --workspace ${HF_WORKSPACE}"
+        [[ -n "${HF_ENV}" ]] && CMD="${CMD} --environment ${HF_ENV}"
+        [[ "${HF_ITERATIONS}" != "1" ]] && CMD="${CMD} --iterations ${HF_ITERATIONS}"
+        [[ "${HF_STOP_ON_ERROR}" == "true" ]] && CMD="${CMD} --stop-on-error"
+
+        # Reporter flags — each spec is "name" or "name:path"
+        IFS=',' read -ra REPORTERS <<< "${HF_REPORTERS}"
+        for r in "${REPORTERS[@]}"; do
+          r="${r// /}"   # trim spaces
+          [[ -n "$r" ]] && CMD="${CMD} --reporter ${r}"
+        done
+
+        # Extra user-supplied flags
+        [[ -n "${HF_EXTRA_ARGS}" ]] && CMD="${CMD} ${HF_EXTRA_ARGS}"
+
+        # --exit-code makes http-forge exit 1 on test failures
+        CMD="${CMD} --exit-code"
+
+        echo "Running: http-forge ${CMD}"
+        RESULT_JSON=$(http-forge ${CMD}) || EXIT_CODE=$?
+
+        echo "${RESULT_JSON}"
+
+        # Extract all_passed for output
+        ALL_PASSED=$(echo "${RESULT_JSON}" | \
+          python3 -c "import sys,json; d=json.load(sys.stdin); \
+            s=d.get('summary',{}); \
+            ap=s.get('allPassed', d.get('allPassed', True)); \
+            print(str(ap).lower())" 2>/dev/null || echo "false")
+
+        echo "all_passed=${ALL_PASSED}" >> "$GITHUB_OUTPUT"
+
+        exit "${EXIT_CODE:-0}"

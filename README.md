@@ -1,8 +1,31 @@
 # HTTP Forge CLI
 
-Command-line interface for executing HTTP Forge collections, test suites, and MCP server operations.
+Command-line interface for executing HTTP Forge collections, test suites, and MCP server operations — with built-in CI/CD support including JUnit and HTML reports.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Commands](#commands)
+  - [run-request](#1-run-a-single-request)
+  - [run-collection](#2-run-a-collection)
+  - [run-folder](#3-run-a-folder)
+  - [run-suite](#4-run-a-test-suite)
+  - [mcp-server](#5-manage-mcp-server)
+- [Reporters](#reporters)
+- [CI/CD Integration](#cicd-integration)
+- [Variables & Secrets](#variables--secrets)
+- [Exit Codes](#exit-codes)
+- [Output Format](#output-format)
+
+---
 
 ## Installation
+
+```bash
+npm install --global @http-forge/cli
+```
+
+Or use directly from the monorepo:
 
 ```bash
 cd http-forge.cli
@@ -10,16 +33,312 @@ npm install
 npm run build
 ```
 
-## Usage
+---
 
-### 1. Show Help
+## Commands
+
+### 1. Run a Single Request
 
 ```bash
-http-forge --help
-http-forge -h
+http-forge run-request \
+  --collection my-api \
+  --request get-users \
+  --environment production
 ```
 
-### 2. Run a Single Request
+**Required:**
+- `--collection <ref>` — Collection id, slug, or display name
+- `--request <ref>` — Request id, slug, or display name
+
+**Optional:**
+- `--folder <path>` — Scope resolution to a sub-folder (slash-separated)
+- `--workspace <path>` — Workspace folder (default: current directory)
+- `--environment <name>` — Environment to activate
+- `--var <KEY=VALUE>` — Override a variable (repeatable; highest priority)
+- `--include <field>` — Extra response fields: `headers`, `cookies`, `tests`, `consoleOutput`
+- `--reporter <spec>` — Generate a report (see [Reporters](#reporters))
+- `--exit-code` — Exit 1 when any assertion fails
+- `--output <fmt>` — `json` (default) or `table`
+
+### 2. Run a Collection
+
+```bash
+http-forge run-collection \
+  --collection my-api \
+  --environment dev \
+  --include perRequest
+```
+
+**Required:**
+- `--collection <ref>` — Collection id, slug, or display name
+
+**Optional:**
+- `--workspace <path>` — Workspace folder (default: current directory)
+- `--environment <name>` — Environment to activate
+- `--var <KEY=VALUE>` — Override a variable (repeatable)
+- `--iterations <num>` — Number of iterations (default: 1)
+- `--stop-on-error` — Stop on first failure
+- `--delay <ms>` — Delay between requests in milliseconds
+- `--include <field>` — Extra fields: `perRequest`, `failedOnly`, `consoleOutput`
+- `--reporter <spec>` — Generate a report (see [Reporters](#reporters))
+- `--exit-code` — Exit 1 when any assertion fails
+- `--output <fmt>` — `json` or `table`
+
+### 3. Run a Folder
+
+Run all requests under a specific folder within a collection.
+
+```bash
+http-forge run-folder \
+  --collection my-api \
+  --folder "Auth/Login" \
+  --environment staging
+```
+
+**Required:**
+- `--collection <ref>` — Collection id, slug, or display name
+- `--folder <path>` — Slash-separated folder path (e.g. `"Auth/Login"`)
+
+**Optional:**
+- `--no-recursive` — Run only the direct children of the folder (default includes sub-folders)
+- `--workspace <path>` — Workspace folder (default: current directory)
+- `--environment <name>` — Environment to activate
+- `--var <KEY=VALUE>` — Override a variable (repeatable)
+- `--iterations <num>` — Number of iterations (default: 1)
+- `--stop-on-error` — Stop on first failure
+- `--delay <ms>` — Delay between requests in milliseconds
+- `--include <field>` — Extra fields: `perRequest`, `failedOnly`, `consoleOutput`
+- `--reporter <spec>` — Generate a report (see [Reporters](#reporters))
+- `--exit-code` — Exit 1 when any assertion fails
+- `--output <fmt>` — `json` or `table`
+
+### 4. Run a Test Suite
+
+```bash
+http-forge run-suite \
+  --suite smoke-tests \
+  --environment staging \
+  --reporter junit:results/junit.xml \
+  --exit-code
+```
+
+**Required:**
+- `--suite <id>` — Suite ID
+
+**Optional:**
+- `--workspace <path>` — Workspace folder (default: current directory)
+- `--environment <name>` — Environment to activate
+- `--var <KEY=VALUE>` — Override a variable (repeatable)
+- `--iterations <num>` — Number of iterations
+- `--stop-on-error` — Stop on first failure
+- `--delay <ms>` — Delay between requests in milliseconds
+- `--include <field>` — Extra fields: `perRequest`, `failedOnly`, `consoleOutput`
+- `--reporter <spec>` — Generate a report (see [Reporters](#reporters))
+- `--exit-code` — Exit 1 when any assertion fails
+- `--output <fmt>` — `json` or `table`
+
+### 5. Manage MCP Server
+
+Start, stop, or check the status of an embedded MCP (Model Context Protocol) server for AI agent integration:
+
+```bash
+http-forge mcp-server start --port 3100
+http-forge mcp-server status --workspace .
+http-forge mcp-server stop --workspace .
+```
+
+**Actions:** `start` | `stop` | `status`
+
+**Options:**
+- `--port <num>` — Port to listen on (default: 3100)
+- `--host <addr>` — Host to bind to (default: 127.0.0.1)
+- `--workspace <path>` — Workspace folder (default: current directory)
+
+---
+
+## Reporters
+
+Reporters generate machine-readable or human-readable files from a run. Pass `--reporter` once per format; use the `name:path` syntax to set an explicit output path.
+
+| Spec | Effect |
+|---|---|
+| `--reporter html` | HTML report to the default cache location |
+| `--reporter html:reports/run.html` | HTML report copied to `reports/run.html` |
+| `--reporter junit` | JUnit XML to the default cache location |
+| `--reporter junit:results/junit.xml` | JUnit XML copied to `results/junit.xml` |
+
+Reporters are **composable** — pass multiple to produce all formats in one run:
+
+```bash
+http-forge run-suite --suite smoke-tests \
+  --reporter html:reports/run.html \
+  --reporter junit:results/junit.xml \
+  --exit-code
+```
+
+**Notes:**
+- HTML reports require successful requests to produce content. Use `--reporter html` or the legacy `--include report` / `HTTP_FORGE_GENERATE_REPORTS=true` env var.
+- JUnit XML is always produced when `--reporter junit` is set, even for runs with all failures (so CI tools can parse and display the failures).
+- `--out <path>` is a deprecated alias for `--reporter junit:<path>` and still works but prints a warning.
+
+---
+
+## CI/CD Integration
+
+> For a complete step-by-step guide with examples for GitHub Actions, Docker, and bare npm, see **[docs/ci-guide.md](docs/ci-guide.md)**.
+
+### Quick start — GitHub Actions
+
+```yaml
+- name: Run API tests
+  run: |
+    http-forge run-suite \
+      --workspace ./http-forge-assets \
+      --suite smoke-tests \
+      --environment staging \
+      --reporter junit:test-results/junit.xml \
+      --exit-code
+  env:
+    API_KEY: ${{ secrets.API_KEY }}
+
+- name: Upload results
+  if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: api-test-results
+    path: test-results/junit.xml
+```
+
+### Using the composite action
+
+```yaml
+- uses: http-forge/http-forge.cli@main
+  with:
+    suite: smoke-tests
+    workspace: ./http-forge-assets
+    environment: staging
+    reporters: 'junit:test-results/junit.xml'
+    extra_args: '--var API_KEY=${{ secrets.API_KEY }}'
+```
+
+### Using Docker
+
+```bash
+docker run --rm \
+  -v "$PWD/http-forge-assets:/workspace" \
+  -v "$PWD/results:/results" \
+  ghcr.io/http-forge/cli:latest \
+  run-suite --suite smoke-tests \
+    --reporter junit:/results/junit.xml \
+    --exit-code
+```
+
+---
+
+## Variables & Secrets
+
+**Priority (highest → lowest):**
+1. `--var KEY=VALUE` CLI flags
+2. `process.env` (CI env vars, shell exports)
+3. `<env>.local.json` credential overrides (gitignored)
+4. `<env>.json` environment file
+5. `_global.json` / `_global.local.json` globals
+
+**Injecting secrets at runtime:**
+
+```bash
+http-forge run-suite \
+  --suite smoke-tests \
+  --var API_KEY=$CI_API_KEY \
+  --var BASE_URL=https://staging.example.com
+```
+
+**Secret providers** — reference secrets from AWS Secrets Manager, Azure Key Vault, GCP Secret Manager, HashiCorp Vault, 1Password, or Doppler using `{{secret:alias/path}}`. Credentials come from the environment (env vars, cloud identity, CLI session) — never hardcoded.
+
+---
+
+## Exit Codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success — all assertions passed (or `--exit-code` not set) |
+| `1` | Test failures — one or more assertions failed (only when `--exit-code` is set) |
+| `2` | Invalid arguments, missing required options, or runtime error |
+
+---
+
+## Output Format
+
+### JSON (default)
+
+```json
+{
+  "suite": "Smoke Tests",
+  "environment": "staging",
+  "summary": {
+    "total": 12,
+    "passed": 11,
+    "failed": 1,
+    "allPassed": false
+  },
+  "failedRequests": [
+    {
+      "name": "Create Order",
+      "status": 500,
+      "duration": "312ms",
+      "failedTests": [{ "name": "Status is 201", "message": "expected 500 to equal 201" }]
+    }
+  ],
+  "junitReport": { "path": "/tmp/.http-forge-cache/results/smoke-tests/run-20260626-141501/junit.xml" }
+}
+```
+
+### Table
+
+```
+Result: { suite: 'Smoke Tests', summary: { total: 12, passed: 11, failed: 1 } }
+```
+
+---
+
+## MCP Server — JSON-RPC Usage
+
+After starting the server with `http-forge mcp-server start`, call `POST /`.
+
+```bash
+# Initialize
+curl -X POST http://127.0.0.1:3100 \
+  -H "Content-Type: application/json" \
+  -d '{ "jsonrpc":"2.0","id":1,"method":"initialize" }'
+
+# List tools
+curl -X POST http://127.0.0.1:3100 \
+  -H "Content-Type: application/json" \
+  -d '{ "jsonrpc":"2.0","id":2,"method":"tools/list" }'
+
+# Call a tool
+curl -X POST http://127.0.0.1:3100 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0","id":3,"method":"tools/call",
+    "params":{
+      "name":"run_request",
+      "arguments":{ "collection":"my-api","request":"get-users","environment":"dev" }
+    }
+  }'
+
+# Health check
+curl http://127.0.0.1:3100/health
+```
+
+---
+
+## Architecture
+
+The CLI delegates to `@http-forge/core` direct execution APIs. The service container bootstraps Node.js-specific adapters (file I/O, secrets). Output is formatted to JSON or table. All errors go to stderr; the machine-readable result goes to stdout only.
+
+See [@http-forge/core README](../http-forge.core/README.md) for the full API reference.
+
 
 ```bash
 http-forge run-request \

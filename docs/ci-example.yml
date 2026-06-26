@@ -1,0 +1,111 @@
+# HTTP Forge CI — Example GitHub Actions workflow
+#
+# This workflow shows three ways to run HTTP Forge in CI:
+#
+#   1. Using the reusable composite action (easiest — no Docker required)
+#   2. Using the Docker image (self-contained, reproducible)
+#   3. Using the CLI directly after npm install
+#
+# Copy and adapt this file to your own repository.
+
+name: API Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Option A: Composite GitHub Action ────────────────────────────────────────
+  api-tests-action:
+    name: API Tests (composite action)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Run the suite and produce a JUnit report
+      - name: Run HTTP Forge API tests
+        uses: http-forge/http-forge.cli@main     # pin a tag in production
+        with:
+          suite: smoke-tests
+          workspace: ./http-forge-assets         # path to your workspace
+          environment: staging
+          reporters: 'junit:test-results/junit.xml'
+          extra_args: '--var BASE_URL=${{ secrets.STAGING_BASE_URL }} --var API_KEY=${{ secrets.API_KEY }}'
+
+      # Publish the JUnit report (visible in the PR checks UI)
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: test-results/junit.xml
+          retention-days: 30
+
+      # Generate both HTML and JUnit reports:
+      # extra_args: '--reporter html --reporter junit:test-results/junit.xml'
+
+  # ── Option B: Docker image ────────────────────────────────────────────────────
+  api-tests-docker:
+    name: API Tests (Docker)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run HTTP Forge via Docker
+        run: |
+          mkdir -p test-results
+          docker run --rm \
+            -v "${{ github.workspace }}/http-forge-assets:/workspace" \
+            -v "${{ github.workspace }}/test-results:/results" \
+            ghcr.io/http-forge/cli:latest \
+            run-suite \
+              --suite smoke-tests \
+              --environment staging \
+              --reporter junit:/results/junit.xml \
+              --exit-code \
+              --var API_KEY=${{ secrets.API_KEY }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results-docker
+          path: test-results/junit.xml
+
+  # ── Option C: CLI via npm install ────────────────────────────────────────────
+  api-tests-npm:
+    name: API Tests (npm install)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install HTTP Forge CLI
+        run: npm install --global @http-forge/cli@latest
+
+      - name: Run suite and emit JUnit
+        run: |
+          mkdir -p test-results
+          http-forge run-suite \
+            --workspace ./http-forge-assets \
+            --suite smoke-tests \
+            --environment staging \
+            --reporter junit:test-results/junit.xml \
+            --exit-code \
+            --var API_KEY=${{ secrets.API_KEY }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results-npm
+          path: test-results/junit.xml

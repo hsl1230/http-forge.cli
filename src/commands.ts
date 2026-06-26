@@ -211,9 +211,11 @@ export async function handleRunRequest(args: string[]): Promise<void> {
       onResolve: logResolution,
       environment: opts.environment,
       variables: opts.variables,
-      include: opts.include
+      include: opts.include,
+      reporters: opts.reporters.map((r) => r.name)
     });
     outputResult(result, opts.output);
+    finalizeCiReports(result, opts);
   } catch (err) {
     console.error('Error:', (err as Error).message);
     process.exit(2);
@@ -246,9 +248,11 @@ export async function handleRunCollection(args: string[]): Promise<void> {
       iterations: opts.iterations,
       stopOnError: opts.stopOnError,
       delay: opts.delay,
-      include: opts.include
+      include: opts.include,
+      reporters: opts.reporters.map((r) => r.name)
     });
     outputResult(result, opts.output);
+    finalizeCiReports(result, opts);
   } catch (err) {
     console.error('Error:', (err as Error).message);
     process.exit(2);
@@ -287,9 +291,11 @@ export async function handleRunFolder(args: string[]): Promise<void> {
       iterations: opts.iterations,
       stopOnError: opts.stopOnError,
       delay: opts.delay,
-      include: opts.include
+      include: opts.include,
+      reporters: opts.reporters.map((r) => r.name)
     });
     outputResult(result, opts.output);
+    finalizeCiReports(result, opts);
   } catch (err) {
     console.error('Error:', (err as Error).message);
     process.exit(2);
@@ -322,9 +328,11 @@ export async function handleRunSuite(args: string[]): Promise<void> {
       stopOnError: opts.stopOnError,
       delay: opts.delay,
       requestFilter: opts.requestFilter,
-      include: opts.include
+      include: opts.include,
+      reporters: opts.reporters.map((r) => r.name)
     });
     outputResult(result, opts.output);
+    finalizeCiReports(result, opts);
   } catch (err) {
     console.error('Error:', (err as Error).message);
     process.exit(2);
@@ -351,6 +359,9 @@ interface ParsedArgs {
   delay?: number;
   requestFilter?: string[];
   include: string[];
+  /** Parsed reporter entries: { name: 'junit'|'html', path?: string } */
+  reporters: Array<{ name: string; path?: string }>;
+  exitCode: boolean;
   output: 'json' | 'table';
 }
 
@@ -361,6 +372,8 @@ function parseArgs(args: string[]): ParsedArgs {
     variables: {},
     stopOnError: false,
     include: [],
+    reporters: [],
+    exitCode: false,
     output: 'json'
   };
 
@@ -391,6 +404,16 @@ function parseArgs(args: string[]): ParsedArgs {
       opts.delay = parseInt(args[++i], 10);
     } else if (arg === '--include' && i + 1 < args.length) {
       opts.include.push(args[++i]);
+    } else if (arg === '--reporter' && i + 1 < args.length) {
+      const raw = args[++i];
+      const colonIdx = raw.indexOf(':');
+      if (colonIdx > 0) {
+        opts.reporters.push({ name: raw.slice(0, colonIdx), path: raw.slice(colonIdx + 1) });
+      } else {
+        opts.reporters.push({ name: raw });
+      }
+    } else if (arg === '--exit-code') {
+      opts.exitCode = true;
     } else if (arg === '--output' && i + 1 < args.length) {
       const out = args[++i];
       if (out === 'json' || out === 'table') {
@@ -460,5 +483,66 @@ function outputResult(result: unknown, format: 'json' | 'table'): void {
   } else {
     // Table format for human readability
     process.stdout.write(`Result: ${typeof result === 'string' ? result : JSON.stringify(result, null, 2)}\n`);
+  }
+}
+
+/**
+ * Determine whether a run result represents an all-passing run.
+ * Suite/collection/folder results expose `summary.allPassed`; a single request
+ * result exposes `allPassed` directly. Defaults to passing when unknown so we
+ * never fail a CI build on an unrecognized shape.
+ */
+function runAllPassed(result: unknown): boolean {
+  if (!result || typeof result !== 'object') {
+    return true;
+  }
+  const r = result as Record<string, unknown>;
+  const summary = r.summary as Record<string, unknown> | undefined;
+  if (summary && typeof summary.allPassed === 'boolean') {
+    return summary.allPassed;
+  }
+  if (typeof r.allPassed === 'boolean') {
+    return r.allPassed;
+  }
+  return true;
+}
+
+/**
+ * Post-run handling for CI:
+ * - Copies reporters to their explicit output paths (--reporter junit:path, --reporter html:path).
+ * - Exits with code 1 when --exit-code is set and any test failed.
+ */
+function finalizeCiReports(result: unknown, opts: ParsedArgs): void {
+  const r = result as Record<string, unknown> | undefined;
+
+  for (const reporter of opts.reporters) {
+    if (reporter.name === 'junit' && reporter.path) {
+      const junit = r?.junitReport as { path?: string } | undefined;
+      if (junit?.path && fs.existsSync(junit.path)) {
+        fs.mkdirSync(path.dirname(path.resolve(reporter.path)), { recursive: true });
+        fs.copyFileSync(junit.path, reporter.path);
+        console.error(`Wrote JUnit report to ${reporter.path}`);
+      } else {
+        console.error('Warning: --reporter junit:<path> was set but no JUnit report was generated.');
+      }
+    }
+
+    if (reporter.name === 'html' && reporter.path) {
+      const report = r?.report as { uri?: string } | undefined;
+      if (report?.uri) {
+        const srcPath = report.uri.replace(/^file:\/\//, '');
+        if (fs.existsSync(srcPath)) {
+          fs.mkdirSync(path.dirname(path.resolve(reporter.path)), { recursive: true });
+          fs.copyFileSync(srcPath, reporter.path);
+          console.error(`Wrote HTML report to ${reporter.path}`);
+        }
+      } else {
+        console.error('Warning: --reporter html:<path> was set but no HTML report was generated (did you include "report" in --include or enable HTTP_FORGE_GENERATE_REPORTS?).');
+      }
+    }
+  }
+
+  if (opts.exitCode && !runAllPassed(result)) {
+    process.exit(1);
   }
 }

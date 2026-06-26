@@ -10,11 +10,11 @@
  */
 
 import {
-  handleMcpServer,
-  handleRunCollection,
-  handleRunFolder,
-  handleRunRequest,
-  handleRunSuite
+    handleMcpServer,
+    handleRunCollection,
+    handleRunFolder,
+    handleRunRequest,
+    handleRunSuite
 } from './commands';
 
 export async function main(): Promise<void> {
@@ -96,6 +96,12 @@ COMMANDS:
       --var <KEY=VALUE>   Override a variable (repeatable; highest priority)
       --include <field>   Include extra fields (repeatable):
                           headers, cookies, tests, consoleOutput, report
+      --reporter <spec>   Generate a report (repeatable). Format: <name> or <name>:<path>
+                          Supported names: html, junit
+                          Examples: --reporter html
+                                    --reporter junit:results/junit.xml
+                                    --reporter html --reporter junit:results/junit.xml
+      --exit-code         Exit non-zero (1) when any assertion fails (for CI)
       --output <fmt>      Output format: json or table (default: json)
 
   run-collection          Execute a collection
@@ -110,6 +116,9 @@ COMMANDS:
       --delay <ms>        Delay between requests
       --include <field>   Include extra fields (repeatable):
                           perRequest, failedOnly, consoleOutput, report
+      --reporter <spec>   Generate a report (repeatable). Format: <name> or <name>:<path>
+                          Supported names: html, junit
+      --exit-code         Exit non-zero (1) when any assertion fails (for CI)
       --output <fmt>      Output format: json or table (default: json)
 
   run-folder              Execute the requests under a collection folder
@@ -128,6 +137,9 @@ COMMANDS:
       --delay <ms>        Delay between requests
       --include <field>   Include extra fields (repeatable):
                           perRequest, failedOnly, consoleOutput, report
+      --reporter <spec>   Generate a report (repeatable). Format: <name> or <name>:<path>
+                          Supported names: html, junit
+      --exit-code         Exit non-zero (1) when any assertion fails (for CI)
       --output <fmt>      Output format: json or table (default: json)
 
   run-suite               Execute a test suite
@@ -142,6 +154,9 @@ COMMANDS:
       --delay <ms>        Delay between requests
       --include <field>   Include extra fields (repeatable):
                           perRequest, failedOnly, consoleOutput, report
+      --reporter <spec>   Generate a report (repeatable). Format: <name> or <name>:<path>
+                          Supported names: html, junit
+      --exit-code         Exit non-zero (1) when any assertion fails (for CI)
       --output <fmt>      Output format: json or table (default: json)
 
 EXAMPLES:
@@ -155,8 +170,10 @@ EXAMPLES:
   http-forge run-collection --collection my-api --environment prod --var BASE_URL=https://api.example.com --var API_KEY=$API_KEY
   http-forge run-folder --collection my-api --folder "Auth/Login" --environment dev --include perRequest
   http-forge run-folder --collection my-api --folder Users --no-recursive --include report
-  http-forge run-suite --suite smoke-tests --iterations 3 --include failedOnly --include report --output json
+  http-forge run-suite --suite smoke-tests --iterations 3 --include failedOnly --output json
   http-forge run-suite --suite smoke-tests --environment staging --var TOKEN=$CI_TOKEN
+  http-forge run-suite --suite smoke-tests --reporter junit:results/junit.xml --exit-code
+  http-forge run-suite --suite smoke-tests --reporter html --reporter junit:results/junit.xml --exit-code
 
 NOTES:
   --collection, --request, and each --folder segment accept an id, a slug, or a
