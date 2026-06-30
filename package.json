@@ -1,6 +1,6 @@
 {
   "name": "@http-forge/cli",
-  "version": "0.2.2",
+  "version": "0.2.5",
   "description": "HTTP Forge CLI — terminal interface for collections, test suites, and MCP server",
   "main": "dist/index.js",
   "bin": {
@@ -32,7 +32,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@http-forge/core": "^0.6.1"
+    "@http-forge/core": "^0.6.5"
   },
   "optionalDependencies": {
     "@aws-sdk/client-secrets-manager": "^3.0.0",

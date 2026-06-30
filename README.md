@@ -6,14 +6,18 @@ Command-line interface for executing HTTP Forge collections, test suites, and MC
 
 - [Installation](#installation)
 - [Commands](#commands)
-  - [run-request](#1-run-a-single-request)
-  - [run-collection](#2-run-a-collection)
-  - [run-folder](#3-run-a-folder)
-  - [run-suite](#4-run-a-test-suite)
-  - [mcp-server](#5-manage-mcp-server)
+  - [run](#run-command)
+  - [generate-collection](#generate-collection)
+  - [suggest-env](#suggest-env)
+  - [schedule](#schedule)
+  - [mcp](#5-manage-mcp-server)
+  - [copy-as](#6-copy-as-code-snippet)
+  - [list](#7-list-workspace-resources)
+  - [env](#8-manage-environment-variables)
 - [Reporters](#reporters)
 - [CI/CD Integration](#cicd-integration)
 - [Variables & Secrets](#variables--secrets)
+- [Environment Variables](#environment-variables)
 - [Exit Codes](#exit-codes)
 - [Output Format](#output-format)
 
@@ -37,18 +41,66 @@ npm run build
 
 ## Commands
 
-### 1. Run a Single Request
+### `run` command
+
+Execute requests using the positional form `http-forge run <type> <name>`:
 
 ```bash
-http-forge run-request \
+# Run a collection by name
+http-forge run collection "Auth Flow" --env staging
+
+# Run a test suite by name or id
+http-forge run suite "Regression" --env prod --stop-on-error --exit-code
+
+# Run a single request (needs --collection)
+http-forge run request "Login" --collection "Auth" --env dev
+
+# Run all requests under a folder (needs --collection)
+http-forge run folder "Auth/Login" --collection "Auth" --env dev
+```
+
+`--env` is a short form of `--environment`. Both default to `$HTTP_FORGE_ENV` when not set.
+
+#### Path-based dispatch
+
+You can also pass a workspace-relative **file path** instead of a type + name pair. HTTP Forge detects the run type from the target file:
+
+```bash
+# Run by pointing at the collection directory (contains collection.json)
+http-forge run collections/auth-flow --env staging
+
+# Run a specific suite file
+http-forge run suites/regression.json --env prod --exit-code
+
+# Run a folder — collection is resolved automatically from the ancestor collection.json
+http-forge run collections/auth-flow/Login --env dev
+
+# Run a single request — collection is resolved automatically
+http-forge run collections/auth-flow/Login/get-token --env dev
+```
+
+| Target file found | Equivalent command |
+|---|---|
+| `suite.json` | `run suite <name>` |
+| `collection.json` | `run collection <name>` |
+| `folder.json` (or directory inside a collection) | `run folder <path>` |
+| `request.json` | `run request <name>` |
+
+Path-based dispatch is useful when navigating a workspace in a terminal — `cd` into a folder and pass its relative path directly.
+
+---
+
+### 1. `run request`
+
+```bash
+http-forge run request "get-users" \
   --collection my-api \
-  --request get-users \
   --environment production
 ```
 
 **Required:**
 - `--collection <ref>` — Collection id, slug, or display name
-- `--request <ref>` — Request id, slug, or display name
+- First positional arg — Request id, slug, or display name
 
 **Optional:**
 - `--folder <path>` — Scope resolution to a sub-folder (slash-separated)
@@ -60,23 +112,24 @@ http-forge run-request \
 - `--exit-code` — Exit 1 when any assertion fails
 - `--output <fmt>` — `json` (default) or `table`
 
-### 2. Run a Collection
+### 2. `run collection`
 
 ```bash
-http-forge run-collection \
-  --collection my-api \
+http-forge run collection my-api \
   --environment dev \
   --include perRequest
 ```
 
 **Required:**
-- `--collection <ref>` — Collection id, slug, or display name
+- First positional arg — Collection id, slug, or display name
 
 **Optional:**
-- `--workspace <path>` — Workspace folder (default: current directory)
-- `--environment <name>` — Environment to activate
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--environment <name>` — Environment to activate (default: `$HTTP_FORGE_ENV`)
+- `--env <name>` — Short form of `--environment`
 - `--var <KEY=VALUE>` — Override a variable (repeatable)
 - `--iterations <num>` — Number of iterations (default: 1)
+- `--concurrency <num>` — Parallel virtual users (default: 1)
 - `--stop-on-error` — Stop on first failure
 - `--delay <ms>` — Delay between requests in milliseconds
 - `--include <field>` — Extra fields: `perRequest`, `failedOnly`, `consoleOutput`
@@ -84,27 +137,28 @@ http-forge run-collection \
 - `--exit-code` — Exit 1 when any assertion fails
 - `--output <fmt>` — `json` or `table`
 
-### 3. Run a Folder
+### 3. `run folder`
 
 Run all requests under a specific folder within a collection.
 
 ```bash
-http-forge run-folder \
+http-forge run folder "Auth/Login" \
   --collection my-api \
-  --folder "Auth/Login" \
   --environment staging
 ```
 
 **Required:**
+- First positional arg — Folder path (slash-separated, e.g. `"Auth/Login"`)
 - `--collection <ref>` — Collection id, slug, or display name
-- `--folder <path>` — Slash-separated folder path (e.g. `"Auth/Login"`)
 
 **Optional:**
-- `--no-recursive` — Run only the direct children of the folder (default includes sub-folders)
-- `--workspace <path>` — Workspace folder (default: current directory)
-- `--environment <name>` — Environment to activate
+- `--no-recursive` — Run only direct children of the folder (default includes sub-folders)
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--environment <name>` — Environment to activate (default: `$HTTP_FORGE_ENV`)
+- `--env <name>` — Short form of `--environment`
 - `--var <KEY=VALUE>` — Override a variable (repeatable)
 - `--iterations <num>` — Number of iterations (default: 1)
+- `--concurrency <num>` — Parallel virtual users (default: 1)
 - `--stop-on-error` — Stop on first failure
 - `--delay <ms>` — Delay between requests in milliseconds
 - `--include <field>` — Extra fields: `perRequest`, `failedOnly`, `consoleOutput`
@@ -112,24 +166,23 @@ http-forge run-folder \
 - `--exit-code` — Exit 1 when any assertion fails
 - `--output <fmt>` — `json` or `table`
 
-### 4. Run a Test Suite
-
 ```bash
-http-forge run-suite \
-  --suite smoke-tests \
+http-forge run suite smoke-tests \
   --environment staging \
   --reporter junit:results/junit.xml \
   --exit-code
 ```
 
 **Required:**
-- `--suite <id>` — Suite ID
+- First positional arg — Suite name or id (case-insensitive name matching supported)
 
 **Optional:**
-- `--workspace <path>` — Workspace folder (default: current directory)
-- `--environment <name>` — Environment to activate
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--environment <name>` — Environment to activate (default: `$HTTP_FORGE_ENV`)
+- `--env <name>` — Short form of `--environment`
 - `--var <KEY=VALUE>` — Override a variable (repeatable)
 - `--iterations <num>` — Number of iterations
+- `--concurrency <num>` — Parallel virtual users (default: 1)
 - `--stop-on-error` — Stop on first failure
 - `--delay <ms>` — Delay between requests in milliseconds
 - `--include <field>` — Extra fields: `perRequest`, `failedOnly`, `consoleOutput`
@@ -137,14 +190,129 @@ http-forge run-suite \
 - `--exit-code` — Exit 1 when any assertion fails
 - `--output <fmt>` — `json` or `table`
 
+---
+
+### `generate-collection`
+
+Create an HTTP Forge collection from a **curl command**, a **Postman Collection** export, or an **OpenAPI spec**. Optionally enhance the resulting collection with AI.
+
+```bash
+# From a curl command
+http-forge generate-collection --curl "curl -X POST https://api.example.com/users \
+  -H 'Authorization: Bearer sk-abc123' \
+  -d '{\"name\":\"Alice\"}'" \
+  --env dev
+
+# From a Postman Collection v2.x export
+http-forge generate-collection --postman ./MyApi.postman_collection.json
+
+# From an OpenAPI spec — creates a collection and an environment from server URLs
+http-forge generate-collection --openapi ./openapi.yaml \
+  --name "Payments API" --create-envs --env staging
+
+# Any source + AI enhancement (requires OPENAI_API_KEY or ANTHROPIC_API_KEY)
+http-forge generate-collection --postman ./MyApi.postman_collection.json --ai
+http-forge generate-collection --openapi ./openapi.yaml --create-envs --ai
+```
+
+**Sources (exactly one required):**
+- `--curl <cmd>` — curl command string (quote the whole thing)
+- `--postman <file>` — Postman Collection v2.x JSON file
+- `--openapi <file>` — OpenAPI 3.0 spec (`.json`, `.yaml`, `.yml`)
+
+**Options:**
+- `--name <name>` — Collection name (default: derived from source)
+- `--env <name>` — `curl`: write detected vars to this env · `openapi`: create env from server URLs
+- `--create-envs` — `openapi`: create environments from all server URLs
+- `--ai` — Enhance the collection with AI after import (writes realistic example bodies and `pm.test()` assertions).  
+  Requires `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Override model via `OPENAI_MODEL` / `ANTHROPIC_MODEL`. Force provider with `HTTP_FORGE_AI_PROVIDER=openai|anthropic`.
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--output json|table` — Output format (default: `json`)
+
+---
+
+### `suggest-env`
+
+Scan a collection for hardcoded values (API keys, base URLs, tokens, IDs) and suggest replacing them with `{{ENV_VAR}}` placeholders. Runs dry-run by default; add `--apply` to write changes.
+
+```bash
+# Dry-run (heuristic rules) — see what would be replaced
+http-forge suggest-env --collection my-api --output table
+
+# Dry-run with AI detection (better recall for complex collections)
+OPENAI_API_KEY=sk-... http-forge suggest-env --collection my-api --ai --output table
+
+# Apply: replace in collection and write original values to "staging" env
+http-forge suggest-env --collection my-api --apply --env staging
+
+# Apply with AI detection
+http-forge suggest-env --collection my-api --ai --apply --env staging
+
+# Only flag values appearing in 3+ requests
+http-forge suggest-env --collection my-api --min-occurrences 3 --output table
+```
+
+**Required:**
+- `--collection <ref>` — Collection name, slug, or id
+
+**Options:**
+- `--apply` — Replace hardcoded values in the collection and write originals to the target env
+- `--env <name>` — Target environment for `--apply` (default: active env)
+- `--ai` — Use AI for detection instead of heuristic rules.  
+  Requires `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Ignores `--min-occurrences` (AI determines relevance).
+- `--min-occurrences <n>` — Only suggest values appearing in ≥ N request locations (default: 1; heuristic mode only)
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--output json|table` — Output format (default: `json`)
+
+---
+
+### `schedule`
+
+Generate a CI schedule configuration for running an HTTP Forge suite automatically. Outputs a **GitHub Actions workflow** file, a **cron entry**, or both — no daemon required.
+
+```bash
+# GitHub Actions workflow (default) — runs on push + every 6 hours
+http-forge schedule --suite smoke-tests --env staging
+
+# Custom cron schedule and output path
+http-forge schedule --suite regression --env prod \
+  --cron "0 2 * * *" --output .github/workflows/nightly.yml
+
+# Generate both a GitHub Actions workflow and a cron entry
+http-forge schedule --suite smoke-tests --env staging --format both
+
+# Print a cron entry only (no file written)
+http-forge schedule --suite smoke-tests --print-cron
+
+# Custom reporter path
+http-forge schedule --suite e2e --reporter "junit:test-results/e2e.xml"
+```
+
+**Required:**
+- `--suite <name>` — Test suite name, slug, or id
+
+**Options:**
+- `--env <name>` — Environment to pass to the suite run
+- `--cron <expr>` — Cron schedule expression (default: `"0 */6 * * *"` — every 6 hours)
+- `--output <path>` — Output file path (default: `.github/workflows/http-forge-<suite>.yml`)
+- `--reporter <spec>` — Reporter spec, e.g. `junit:results/junit.xml` (default: `junit`)
+- `--no-exit-code` — Do not fail the CI job on assertion failures
+- `--format github-actions|cron|both` — Output format (default: `github-actions`)
+- `--print-cron` — Print a cron entry to stdout (alias for `--format cron`)
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+
+The generated GitHub Actions workflow includes: Node 20 setup, `npm install -g @http-forge/cli`, the run step with configurable reporter and exit-code gate, artifact upload (30-day retention), and an optional JUnit publish step.
+
+---
+
 ### 5. Manage MCP Server
 
 Start, stop, or check the status of an embedded MCP (Model Context Protocol) server for AI agent integration:
 
 ```bash
-http-forge mcp-server start --port 3100
-http-forge mcp-server status --workspace .
-http-forge mcp-server stop --workspace .
+http-forge mcp start --port 3100
+http-forge mcp status
+http-forge mcp stop
 ```
 
 **Actions:** `start` | `stop` | `status`
@@ -152,7 +320,94 @@ http-forge mcp-server stop --workspace .
 **Options:**
 - `--port <num>` — Port to listen on (default: 3100)
 - `--host <addr>` — Host to bind to (default: 127.0.0.1)
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+
+---
+
+### 6. Copy-as Code Snippet
+
+Generate a ready-to-run code snippet for a request in cURL, JavaScript fetch, or Python:
+
+```bash
+http-forge copy-as \
+  --collection my-api \
+  --request get-users \
+  --lang curl
+
+http-forge copy-as \
+  --collection my-api \
+  --request "Create User" \
+  --lang python \
+  --environment staging
+```
+
+**Required:**
+- `--collection <ref>` — Collection id, slug, or display name
+- `--request <ref>` — Request id, slug, or display name
+- `--lang <name>` — Target language: `curl`, `fetch`, `python`
+
+**Optional:**
+- `--folder <path>` — Scope resolution to a sub-folder
 - `--workspace <path>` — Workspace folder (default: current directory)
+- `--environment <name>` — Environment to resolve variables against
+
+---
+
+### 7. List Workspace Resources
+
+Inspect collections, suites, environments, and requests without starting a run:
+
+```bash
+http-forge list collections
+http-forge list suites --output table
+http-forge list environments --workspace /path/to/project
+http-forge list requests --collection my-api
+http-forge list requests --collection my-api --folder Auth --output table
+http-forge list folders --collection my-api
+http-forge list folders --collection my-api --folder Auth
+```
+
+**Subcommands:** `collections` | `suites` | `environments` | `requests` | `folders`
+
+**Options:**
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--collection <ref>` — Required for `requests` and `folders` subcommands
+- `--folder <path>` — Scope to a sub-folder (for `requests` and `folders`)
+- `--output <fmt>` — `json` (default) or `table`
+
+---
+
+### 8. Manage Environment Variables
+
+Read and write environment variables stored in the workspace config files:
+
+```bash
+# List all environments
+http-forge env list
+
+# Inspect a specific environment
+http-forge env get staging
+http-forge env env get staging --output table
+http-forge env get staging --no-values   # show keys only
+
+# Set a variable permanently (writes to the JSON env file)
+http-forge env set staging BASE_URL https://staging.example.com
+http-forge env set staging API_KEY=my-secret-key   # key=value syntax
+
+# Remove a variable
+http-forge env unset staging OLD_VAR
+```
+
+**Subcommands:** `list` | `get <name>` | `set <env> <key> <value>` | `unset <env> <key>`
+
+**Options:**
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--output <fmt>` — `json` (default) or `table` (for `list` and `get`)
+- `--no-values` — Show only key names, not values (for `get`)
+
+> **Note:** `env set` writes permanently to the env JSON file on disk. Changes are picked up immediately by subsequent CLI runs in the same workspace.
+>
+> To set the active environment for a session, use the `HTTP_FORGE_ENV` environment variable instead of a CLI subcommand (e.g. `export HTTP_FORGE_ENV=staging`).
 
 ---
 
@@ -170,7 +425,7 @@ Reporters generate machine-readable or human-readable files from a run. Pass `--
 Reporters are **composable** — pass multiple to produce all formats in one run:
 
 ```bash
-http-forge run-suite --suite smoke-tests \
+http-forge run suite smoke-tests \
   --reporter html:reports/run.html \
   --reporter junit:results/junit.xml \
   --exit-code
@@ -186,15 +441,16 @@ http-forge run-suite --suite smoke-tests \
 ## CI/CD Integration
 
 > For a complete step-by-step guide with examples for GitHub Actions, Docker, and bare npm, see **[docs/ci-guide.md](docs/ci-guide.md)**.
+>
+> For **AI-driven failure analysis** (Claude automatically diagnoses failures and posts results as a PR comment), see [Option E — AI-driven analysis](docs/ci-guide.md#option-e--ai-driven-analysis-mcp--claude) in the CI guide.
 
 ### Quick start — GitHub Actions
 
 ```yaml
 - name: Run API tests
   run: |
-    http-forge run-suite \
+    http-forge run suite smoke-tests \
       --workspace ./http-forge-assets \
-      --suite smoke-tests \
       --environment staging \
       --reporter junit:test-results/junit.xml \
       --exit-code
@@ -228,7 +484,7 @@ docker run --rm \
   -v "$PWD/http-forge-assets:/workspace" \
   -v "$PWD/results:/results" \
   ghcr.io/http-forge/cli:latest \
-  run-suite --suite smoke-tests \
+  run suite smoke-tests \
     --reporter junit:/results/junit.xml \
     --exit-code
 ```
@@ -247,8 +503,7 @@ docker run --rm \
 **Injecting secrets at runtime:**
 
 ```bash
-http-forge run-suite \
-  --suite smoke-tests \
+http-forge run suite smoke-tests \
   --var API_KEY=$CI_API_KEY \
   --var BASE_URL=https://staging.example.com
 ```
@@ -303,7 +558,7 @@ Result: { suite: 'Smoke Tests', summary: { total: 12, passed: 11, failed: 1 } }
 
 ## MCP Server — JSON-RPC Usage
 
-After starting the server with `http-forge mcp-server start`, call `POST /`.
+After starting the server with `http-forge mcp start`, call `POST /`.
 
 ```bash
 # Initialize
@@ -339,362 +594,3 @@ The CLI delegates to `@http-forge/core` direct execution APIs. The service conta
 
 See [@http-forge/core README](../http-forge.core/README.md) for the full API reference.
 
-
-```bash
-http-forge run-request \
-  --collection my-api \
-  --request get-users \
-  --environment production \
-  --output json
-```
-
-```bash
-http-forge run-request --collection my-api --request get-users --include tests --include report
-```
-
-**Required:**
-- `--collection <id>` — Collection ID
-- `--request <id>` — Request ID
-
-**Optional:**
-- `--workspace <path>` — Workspace folder (default: current directory)
-- `--environment <name>` — Environment to use
-- `--var <KEY=VALUE>` — Override a variable (repeatable; takes highest priority)
-- `--include <field>` — Include extra fields (repeatable): `headers`, `cookies`, `tests`, `consoleOutput`, `report`
-- `--output <fmt>` — Output format: `json` or `table` (default: `json`)
-
-### 3. Run a Collection
-
-```bash
-http-forge run-collection \
-  --collection my-api \
-  --environment dev \
-  --include perRequest \
-  --output json
-```
-
-**Required:**
-- `--collection <id>` — Collection ID
-
-**Optional:**
-- `--workspace <path>` — Workspace folder (default: current directory)
-- `--environment <name>` — Environment to use
-- `--var <KEY=VALUE>` — Override a variable (repeatable; takes highest priority)
-- `--iterations <num>` — Number of iterations (default: 1)
-- `--stop-on-error` — Stop on first failure
-- `--delay <ms>` — Delay between requests (milliseconds)
-- `--include <field>` — Include extra fields (repeatable): `perRequest`, `failedOnly`, `consoleOutput`, `report`
-- `--output <fmt>` — Output format: `json` or `table` (default: `json`)
-
-### 4. Run a Test Suite
-
-```bash
-http-forge run-suite \
-  --suite smoke-tests \
-  --iterations 3 \
-  --include failedOnly \
-  --include report \
-  --output json
-```
-
-**Required:**
-- `--suite <id>` — Suite ID
-
-**Optional:**
-- `--workspace <path>` — Workspace folder (default: current directory)
-- `--environment <name>` — Environment to use
-- `--var <KEY=VALUE>` — Override a variable (repeatable; takes highest priority)
-- `--iterations <num>` — Number of iterations
-- `--stop-on-error` — Stop on first failure
-- `--delay <ms>` — Delay between requests (milliseconds)
-- `--include <field>` — Include extra fields (repeatable): `perRequest`, `failedOnly`, `consoleOutput`, `report`
-- `--output <fmt>` — Output format: `json` or `table` (default: `json`)
-
-### 5. Manage MCP Server
-
-Start, stop, or check the status of an embedded MCP (Model Context Protocol) server for AI agent integration:
-
-```bash
-http-forge mcp-server start --port 3100
-http-forge mcp-server status --workspace .
-http-forge mcp-server stop --workspace .
-```
-
-**Actions:**
-- `start` — Start MCP server (default)
-- `stop` — Stop MCP server for the workspace
-- `status` — Show MCP server status for the workspace
-
-**Options:**
-- `--port <num>` — Port to listen on (default: 3100)
-- `--host <addr>` — Host to bind to (default: 127.0.0.1)
-- `--workspace <path>` — Workspace folder (default: current directory)
-
-### MCP JSON-RPC Usage
-
-After starting the server with `http-forge mcp-server start`, call the MCP endpoint at `POST /`.
-
-JSON-RPC request shape:
-
-```typescript
-interface JsonRpcRequest {
-  jsonrpc: '2.0';
-  id: string | number | null;
-  method: string;
-  params?: Record<string, unknown>;
-}
-```
-
-#### Initialize
-
-```bash
-curl -X POST http://127.0.0.1:3100 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "initialize",
-    "params": {}
-  }'
-```
-
-#### List tools
-
-```bash
-curl -X POST http://127.0.0.1:3100 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 2,
-    "method": "tools/list"
-  }'
-```
-
-#### Call a tool
-
-```bash
-curl -X POST http://127.0.0.1:3100 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "tools/call",
-    "params": {
-      "name": "request__my-api__get-users",
-      "arguments": {
-        "environment": "dev",
-        "include": ["tests", "report"]
-      }
-    }
-  }'
-```
-
-#### Health check
-
-```bash
-curl http://127.0.0.1:3100/health
-```
-
-#### Legacy compatibility endpoint
-
-For non-MCP clients, a compatibility endpoint is also available:
-
-```bash
-curl -X POST http://127.0.0.1:3100/tools/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "request__my-api__get-users",
-    "args": { "environment": "dev" }
-  }'
-```
-
-Common JSON-RPC error codes:
-- `-32700` Parse error (invalid JSON)
-- `-32603` Internal error (dispatch/runtime failures, including unknown method)
-
-## Exit Codes
-
-- `0` — Success
-- `1` — Execution error (request failed, assertions failed, etc.)
-- `2` — Invalid arguments or missing required options
-
-## Environment Variables
-
-- `HTTP_FORGE_WORKSPACE` — Override default workspace folder
-
-> **Variable priority (highest → lowest)**
-> 1. `--var KEY=VALUE` flags on the command line
-> 2. `process.env` (CI environment variables, shell exports)
-> 3. `<env>.local.json` credential overrides (gitignored)
-> 4. `<env>.json` environment file values
-> 5. `_global.json` / `_global.local.json` globals
-
-## Secret Providers
-
-Reference secrets from AWS Secrets Manager, Azure Key Vault, Google Secret Manager, HashiCorp Vault, 1Password, or Doppler directly in requests using `{{secret:alias/path}}`. Credentials come from the environment (env vars, cloud identity, CLI session) — never from config. Install the relevant cloud SDK (`optionalDependencies`) for AWS/Azure/GCP; Vault/Doppler/1Password need none.
-
-See the [Secret Providers guide](https://github.com/hsl1230/http-forge/blob/main/docs/user-guide/secret-providers.md) for setup, configuration, and CI/CD usage.
-
-## Examples
-
-### Run smoke tests on staging
-
-```bash
-http-forge run-suite \
-  --suite smoke-tests \
-  --environment staging \
-  --stop-on-error
-```
-
-### Override variables at runtime
-
-```bash
-# Inject a single variable
-http-forge run-request \
-  --collection my-api \
-  --request create-user \
-  --var BASE_URL=https://api.staging.example.com \
-  --var API_KEY=my-secret-key
-
-# Multiple --var flags are supported
-http-forge run-suite \
-  --suite smoke-tests \
-  --environment prod \
-  --var TIMEOUT=30000 \
-  --var RETRY_COUNT=3
-```
-
-### GitHub Actions / CI integration
-
-Variables from the shell environment are automatically available as template variables in your requests:
-
-```yaml
-- name: Run API tests
-  run: |
-    http-forge run-suite \
-      --suite smoke-tests \
-      --environment staging \
-      --stop-on-error \
-      --include report \
-      --output json
-  env:
-    API_KEY: ${{ secrets.API_KEY }}
-    BASE_URL: ${{ vars.STAGING_BASE_URL }}
-```
-
-You can also pass secrets explicitly with `--var` to override environment file values:
-
-```yaml
-- name: Run integration tests
-  run: |
-    http-forge run-collection \
-      --collection my-api \
-      --environment prod \
-      --var API_KEY=${{ secrets.PROD_API_KEY }} \
-      --var DB_HOST=${{ secrets.DB_HOST }}
-```
-
-### Execute collection with custom variables
-
-```bash
-http-forge run-collection \
-  --collection my-api \
-  --environment dev \
-  --var BASE_URL=http://localhost:3000
-```
-
-### Run same test 5 times with delays
-
-```bash
-http-forge run-collection \
-  --collection my-api \
-  --iterations 5 \
-  --delay 1000 \
-  --stop-on-error
-```
-
-### Get JSON output for scripting
-
-```bash
-http-forge run-request \
-  --collection api \
-  --request login \
-  --output json | jq '.allPassed'
-```
-
-## Output Format
-
-### JSON Format (default)
-
-```json
-{
-  "request": "Get Users",
-  "status": 200,
-  "ok": true,
-  "duration": "145ms",
-  "allPassed": true,
-  "assertions": [
-    {
-      "name": "Status is 200",
-      "passed": true
-    }
-  ]
-}
-```
-
-### Table Format
-
-```
-Request: Get Users
-Status:  200
-OK:      true
-Time:    145ms
-Tests:   ✅ All passed
-```
-
-## Error Handling
-
-All errors are written to stderr with detailed messages:
-
-```bash
-$ http-forge run-request --collection missing --request test 2>&1
-Error: Collection "missing" not found
-```
-
-## Testing
-
-Run tests to verify CLI functionality:
-
-```bash
-npm test
-```
-
-## Development
-
-### Build
-
-```bash
-npm run build
-```
-
-### Watch Mode
-
-```bash
-npm run dev
-```
-
-### Clean
-
-```bash
-npm run clean
-```
-
-## Architecture
-
-The CLI delegates to HTTP Forge Core APIs:
-- **Direct Execution**: Uses `@http-forge/core` direct execution APIs
-- **Service Container**: Bootstraps Node.js-specific adapters (file I/O, secrets, etc.)
-- **Output Formatting**: Converts execution results to JSON or human-readable format
-- **Error Handling**: Consistent exit codes and error messages
-
-See [@http-forge/core README](../http-forge.core/README.md) for API documentation.

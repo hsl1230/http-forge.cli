@@ -12,6 +12,7 @@ This guide explains how to run HTTP Forge API tests in continuous integration pi
 - [Option B — GitHub Actions (npm install)](#option-b--github-actions-npm-install)
 - [Option C — Docker](#option-c--docker)
 - [Option D — Jenkins / GitLab CI / other](#option-d--jenkins--gitlab-ci--other)
+- [Option E — AI-driven analysis (MCP + Claude)](#option-e--ai-driven-analysis-mcp--claude)
 - [Publishing results on pull requests](#publishing-results-on-pull-requests)
 - [Environment variables and secrets](#environment-variables-and-secrets)
 - [Running a folder instead of a full suite](#running-a-folder-instead-of-a-full-suite)
@@ -26,14 +27,14 @@ HTTP Forge stores collections, suites, and environments as plain JSON files in y
 
 In CI you:
 1. Check out the repository (which includes your test definitions).
-2. Install and run `http-forge run-suite` (or `run-collection` / `run-folder`).
+2. Install and run `http-forge run suite` (or `run collection` / `run folder`).
 3. Publish the generated JUnit XML as a test report artifact.
 4. Optionally gate the build with `--exit-code` so failures block the PR.
 
 ```
 GitHub Actions
   └── actions/checkout@v4           ← gets your request definitions
-  └── http-forge run-suite          ← executes them against staging
+  └── http-forge run suite          ← executes them against staging
         --reporter junit:results/   ← writes junit.xml
         --exit-code                 ← exits 1 if any assertion fails
   └── actions/upload-artifact@v4   ← publishes junit.xml for PR annotation
@@ -168,7 +169,7 @@ jobs:
       - name: Run suite
         run: |
           mkdir -p test-results
-          http-forge run-suite \
+          http-forge run suite \
             --workspace ./http-forge-assets \
             --suite smoke-tests \
             --environment staging \
@@ -189,7 +190,7 @@ jobs:
 ```yaml
       - name: Run suite (HTML + JUnit)
         run: |
-          http-forge run-suite \
+          http-forge run suite \
             --workspace ./http-forge-assets \
             --suite smoke-tests \
             --reporter html:reports/run.html \
@@ -225,8 +226,7 @@ Use the Docker image for a fully self-contained, reproducible environment.
             -v "${{ github.workspace }}/http-forge-assets:/workspace" \
             -v "${{ github.workspace }}/test-results:/results" \
             ghcr.io/http-forge/cli:latest \
-            run-suite \
-              --suite smoke-tests \
+            run suite smoke-tests \
               --environment staging \
               --reporter junit:/results/junit.xml \
               --exit-code \
@@ -244,7 +244,7 @@ docker build -t http-forge-cli .
 docker run --rm \
   -v "$PWD/../http-forge-assets:/workspace" \
   http-forge-cli \
-  run-suite --suite smoke-tests --reporter junit:results/junit.xml --exit-code
+  run suite smoke-tests --reporter junit:results/junit.xml --exit-code
 ```
 
 ---
@@ -258,7 +258,7 @@ Any CI system that can run shell commands works the same way:
 npm install --global @http-forge/cli@latest
 
 # Run
-http-forge run-suite \
+http-forge run suite \
   --workspace ./http-forge-assets \
   --suite regression \
   --environment staging \
@@ -296,10 +296,26 @@ This adds a check on the PR that shows which requests failed and includes the fa
 
 All shell environment variables are automatically forwarded as template variables inside requests. You do not need `--var` for every CI secret — just set them in the `env:` block.
 
+Two special variables control CLI defaults:
+
+| Variable | Purpose |
+|---|---|
+| `HTTP_FORGE_WORKSPACE` | Default workspace folder (used by all commands when `--workspace` is omitted) |
+| `HTTP_FORGE_ENV` | Default environment name for all `run` commands (used when `--env` / `--environment` is omitted) |
+
+Set them in your shell profile or CI pipeline so you can run commands without flags:
+
+```bash
+export HTTP_FORGE_WORKSPACE=/path/to/http-forge-assets
+export HTTP_FORGE_ENV=staging
+
+http-forge run suite "Smoke Tests" --exit-code  # no --workspace or --env needed
+```
+
 ```yaml
       - name: Run suite
         run: |
-          http-forge run-suite \
+          http-forge run suite \
             --suite smoke-tests \
             --environment staging \
             --exit-code \
@@ -313,7 +329,7 @@ All shell environment variables are automatically forwarded as template variable
 Use `--var KEY=VALUE` to override a variable that is also defined in the environment file:
 
 ```bash
-http-forge run-suite --suite smoke --var BASE_URL=https://override.example.com
+http-forge run suite smoke --var BASE_URL=https://override.example.com
 ```
 
 **Priority (highest → lowest):**
@@ -331,7 +347,7 @@ Run only the requests under a specific folder to keep CI fast:
 
 ```bash
 # Run just the "Auth" folder
-http-forge run-folder \
+http-forge run folder \
   --collection my-api \
   --folder Auth \
   --environment staging \
@@ -339,7 +355,7 @@ http-forge run-folder \
   --exit-code
 
 # Run only the direct children of "Checkout" (skip sub-folders)
-http-forge run-folder \
+http-forge run folder \
   --collection my-api \
   --folder Checkout \
   --no-recursive \
@@ -384,7 +400,7 @@ jobs:
 
       - name: Run suite (${{ matrix.environment }})
         run: |
-          http-forge run-suite \
+          http-forge run suite \
             --workspace ./http-forge-assets \
             --suite smoke-tests \
             --environment ${{ matrix.environment }} \
@@ -402,11 +418,95 @@ jobs:
 
 ---
 
+## Option E — AI-driven analysis (MCP + Claude)
+
+This option adds a second CI job that runs **only when tests fail**. It connects to the HTTP Forge MCP server, invokes the `analyze-test-failure` prompt, and sends the structured failure data to Claude. The resulting diagnosis is written to a Markdown artifact and posted as a PR comment.
+
+**Requirements:**
+- `ANTHROPIC_API_KEY` GitHub secret (or equivalent from another provider)
+- Node.js ≥ 20 in CI
+
+**What the AI reports per failed request:**
+- Root cause (assertion mismatch, HTTP error, script exception, etc.)
+- Specific fix recommendations (corrected URL, missing header, wrong body field, etc.)
+- Updated `pm.test()` assertions when the existing ones are wrong
+
+### Ready-to-use workflow
+
+A complete workflow is provided at [`.github/workflows/api-tests.yml`](../../.github/workflows/api-tests.yml) in this repository. It includes:
+
+- `api-tests` job — runs on every push and PR, plus daily at 16:00 (UTC+8) via cron
+- `ai-analysis` job — triggered automatically when `api-tests` fails and `ANTHROPIC_API_KEY` is set
+
+The AI analysis script is at [`.github/scripts/ai-analyze-failures.js`](../../.github/scripts/ai-analyze-failures.js).
+
+### How it works
+
+```
+api-tests job (fails)
+    │
+    └── ai-analysis job
+            │
+            ├── http-forge mcp start --port 3100
+            │
+            ├── node ai-analyze-failures.js
+            │       │
+            │       ├── mcp.callTool('run_collection', ...)   ← re-runs to get fresh runId
+            │       ├── mcp.callTool('get_run_summary', ...)  ← failedRequests are inline
+            │       ├── mcp.getPrompt('analyze-test-failure') ← structured messages
+            │       └── anthropic.messages.create(...)        ← Claude diagnosis
+            │
+            ├── Upload ai-analysis.md as artifact
+            └── Post diagnosis as PR comment
+```
+
+### Key response fields
+
+When `get_run_summary` returns failures, the response includes two AI-guidance fields:
+
+| Field | Description |
+|---|---|
+| `failedRequests` | Full details for each failed request: `method`, `url`, `requestBody`, `requestHeaders` (redacted), `status`, `responseBody`, `failedTests` |
+| `_nextStep` | Imperative instruction for the AI agent describing what to do with `failedRequests` |
+| `_suggestions` | Present when requests have no `pm.test()` assertions — points AI to `suggest-assertions` or `review-collection` prompt |
+
+### Minimal inline example
+
+If you already have a workflow and only want to add AI analysis on failure:
+
+```yaml
+  ai-analysis:
+    needs: api-tests
+    if: failure() && needs.api-tests.result == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: |
+          npm install -g @http-forge/cli
+          npm install @anthropic-ai/sdk @modelcontextprotocol/sdk
+      - run: |
+          http-forge mcp start --port 3100 --workspace "$GITHUB_WORKSPACE" &
+          sleep 3
+          node .github/scripts/ai-analyze-failures.js
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          HTTP_FORGE_VAR_API_KEY: ${{ secrets.API_KEY }}
+      - run: http-forge mcp stop
+        if: always()
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: ai-analysis, path: results/ai-analysis.md }
+```
+
+---
+
 ## Troubleshooting
 
 ### `Test suite "..." not found`
 
-The `--workspace` path does not point to a directory that contains a `suites/` folder. Check that the workspace is set to the root of your HTTP Forge assets (e.g. `./http-forge-assets`), not the repository root.
+The `--suite` value can be a suite **name** or **id** (case-insensitive name matching is supported). If the suite is still not found, check that the `--workspace` path points to a directory that contains a `suites/` folder. Check that the workspace is set to the root of your HTTP Forge assets (e.g. `./http-forge-assets`), not the repository root.
 
 ### All requests fail with `Invalid URL`
 

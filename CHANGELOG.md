@@ -5,6 +5,66 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.5 - 2026-06-30
+
+### Added
+
+- **`generate-collection` command** — scaffold a new HTTP Forge collection from an existing source:
+  - `--source curl` — parse a curl command string into a request and create a single-request collection
+  - `--source postman` — import a Postman 2.x collection export file
+  - `--source openapi` — scaffold all paths from an OpenAPI 3.0 JSON/YAML spec
+  - `--ai` — use AI to enhance the imported requests with descriptions, assertions, and environment variable suggestions (requires `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
+  - `--collection <name>` — name for the created collection (default: inferred from the file name or first request)
+  - `--workspace <path>` — workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+
+- **`suggest-env` command** — analyse a collection and suggest which hard-coded values should become environment variables:
+  - Detects repeated literal values across URLs, headers, and bodies and proposes variable names
+  - `--collection <ref>` (required) — collection name, slug, or id
+  - `--ai` — use AI for detection instead of heuristic rules (requires `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`; ignores `--min-occurrences`)
+  - `--min-occurrences <n>` — only suggest values appearing in ≥ N request locations (default: 1; heuristic mode only)
+  - `--output json|table` — output format (default: `json`)
+  - `--workspace <path>` — workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+
+- **`schedule` command** — generate a CI schedule configuration for running a test suite automatically:
+  - Outputs a **GitHub Actions workflow** file, a **cron entry**, or both — no daemon required
+  - Generated workflow includes: Node 20 setup, `npm install -g @http-forge/cli`, suite run with configurable reporter, artifact upload (30-day retention), and an optional JUnit publish step
+  - `--suite <name>` (required) — test suite name, slug, or id
+  - `--env <name>` — environment to pass to the run
+  - `--cron <expr>` — cron schedule expression (default: `"0 */6 * * *"` — every 6 hours)
+  - `--output <path>` — output file path (default: `.github/workflows/http-forge-<suite>.yml`)
+  - `--reporter <spec>` — reporter spec, e.g. `junit:results/junit.xml` (default: `junit`)
+  - `--no-exit-code` — do not fail the CI job on assertion failures
+  - `--format github-actions|cron|both` — what to generate (default: `github-actions`)
+  - `--print-cron` — print a cron entry to stdout (alias for `--format cron`)
+  - `--workspace <path>` — workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+
+## 0.2.3 - 2026-06-28
+
+### Added
+
+- **`list` command** — list workspace resources without starting a run:
+  - `http-forge list collections` — all collections (id, name, request count)
+  - `http-forge list suites` — all test suites (id, name, request count, iterations)
+  - `http-forge list environments` — all environments (name, active, variable count)
+  - `http-forge list requests --collection <ref>` — all requests in a collection
+    (id, name, method, URL, folder, description), with optional `--folder` filter
+  - All subcommands support `--workspace` and `--output json|table`
+
+- **`env` command** — read and write environment variables permanently:
+  - `http-forge env list` — all environments (same as `list environments`)
+  - `http-forge env get <name>` — show resolved variables for one environment; supports `--output table` and `--no-values`
+  - `http-forge env set <env> <key> <value>` — write a variable to the env JSON file on disk (also accepts `key=value` syntax)
+  - `http-forge env unset <env> <key>` — delete a variable from the env JSON file
+  - `http-forge env select <name>` — change the active environment in config
+
+- **`copy-as` command** — generate cURL, JavaScript `fetch`, or Python code snippets for any request in the workspace
+
+- **`--concurrency <num>` flag** on `run-collection`, `run-folder`, and `run-suite` — parallel virtual users; each runs the full request sequence in order so inter-request dependencies are preserved (default: 1)
+
+- **Symlinked to `@http-forge/core` latest** — `node_modules/@http-forge/core`
+  now points to the local workspace source so all new MCP tools and APIs are
+  immediately available without a publish cycle.
+
 ## 0.2.2 - 2026-06-26
 
 ### Added
