@@ -8,6 +8,7 @@ Command-line interface for executing HTTP Forge collections, test suites, and MC
 - [Commands](#commands)
   - [launch](#launch-command)
   - [run](#run-command)
+  - [generate](#generate)
   - [generate-collection](#generate-collection)
   - [suggest-env](#suggest-env)
   - [schedule](#schedule)
@@ -41,6 +42,40 @@ npm run build
 ---
 
 ## Commands
+
+### `generate`
+
+Generate typed TypeScript API clients from HTTP Forge collections.
+
+```bash
+# Generate all collections
+http-forge generate --input ./collections --output ./api-clients
+
+# Generate one collection
+http-forge generate --input ./collections --output ./api-clients --collection forgerock-login
+
+# Generate one request
+http-forge generate --input ./collections --output ./api-clients --request forgerock-login/login-request
+```
+
+**Required:**
+- `--input, -i <path>` — Input directory containing collections
+- `--output, -o <path>` — Output directory for generated files
+
+**Optional:**
+- `--collection, -c <name>` — Generate single collection
+- `--request, -r <path>` — Generate single request
+- `--overwrite` — Overwrite existing files
+- `--types-only` — Generate only type definitions
+- `--no-barrel` — Skip barrel (`index.ts`) generation
+
+### Migration from `http-forge-codegen`
+
+`http-forge-codegen` remains as a legacy alias. Preferred command is `http-forge generate`:
+
+- `http-forge-codegen -i ./collections -o ./api-clients` → `http-forge generate -i ./collections -o ./api-clients`
+- `http-forge-codegen -i ./collections -o ./api-clients -c forgerock-login` → `http-forge generate -i ./collections -o ./api-clients -c forgerock-login`
+- `http-forge-codegen -i ./collections -o ./api-clients -r forgerock-login/login-request` → `http-forge generate -i ./collections -o ./api-clients -r forgerock-login/login-request`
 
 ### `launch` command
 

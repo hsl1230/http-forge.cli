@@ -75,10 +75,30 @@ npm run build
 | `http-forge mcp ...` | Start/stop/status for MCP server |
 | `http-forge list ...` | List collections, suites, requests, folders, environments |
 | `http-forge env ...` | Get/set/unset environment variables |
+| `http-forge generate ...` | Generate typed TypeScript API clients from collections |
 | `http-forge generate-collection ...` | Create collection from curl, Postman, or OpenAPI |
 | `http-forge suggest-env ...` | Detect hardcoded values and suggest env vars |
 | `http-forge schedule ...` | Generate scheduled CI workflow/cron config |
 | `http-forge copy-as ...` | Export request as curl/fetch/python snippet |
+
+## Generate Typed Clients
+
+Use one consistent command for code generation in the HTTP Forge family:
+
+```bash
+# Generate all collections
+http-forge generate --input ./collections --output ./api-clients
+
+# Generate one collection
+http-forge generate --input ./collections --output ./api-clients --collection forgerock-login
+
+# Generate one request
+http-forge generate --input ./collections --output ./api-clients --request forgerock-login/login-request
+```
+
+This command delegates to `@http-forge/codegen` under the hood.
+
+Migration notes from `http-forge-codegen` are in [docs/cli-reference.md](docs/cli-reference.md#migration-from-http-forge-codegen).
 
 ## Launch Modes
 

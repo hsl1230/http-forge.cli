@@ -11,15 +11,16 @@
  */
 
 import {
-  handleCopyAs,
-  handleEnv,
-  handleGenerateCollection,
-  handleLaunch,
-  handleList,
-  handleMcpGroup,
-  handleRunGroup,
-  handleSchedule,
-  handleSuggestEnv
+    handleCopyAs,
+    handleEnv,
+    handleGenerate,
+    handleGenerateCollection,
+    handleLaunch,
+    handleList,
+    handleMcpGroup,
+    handleRunGroup,
+    handleSchedule,
+    handleSuggestEnv
 } from './commands';
 
 export async function main(): Promise<void> {
@@ -52,6 +53,10 @@ export async function main(): Promise<void> {
 
       case 'env':
         await handleEnv(args.slice(1));
+        break;
+
+      case 'generate':
+        await handleGenerate(args.slice(1));
         break;
 
       case 'generate-collection':
@@ -173,6 +178,17 @@ COMMANDS:
       --output <fmt>      Output format for list/get: json or table (default: json)
       --no-values         Omit values in 'get' (show only key names)
 
+  generate                Generate typed TypeScript API clients from HTTP Forge collections
+    Required:
+      --input / -i <path>   HTTP Forge collections folder
+      --output / -o <path>  Output folder for generated TypeScript clients
+    Options:
+      --collection / -c     Generate a single collection only
+      --request / -r        Generate a single request (e.g. my-api/get-user)
+      --overwrite           Overwrite existing generated files
+      --types-only          Emit type definitions only, no runtime functions
+      --no-barrel           Skip index.ts barrel file generation
+
   generate-collection     Create a collection from a curl command, Postman file, or OpenAPI spec
     Sources (one required):
       --curl <cmd>        curl command string (quote the whole thing)
@@ -243,6 +259,10 @@ EXAMPLES:
   http-forge env set staging BASE_URL https://staging.example.com
   http-forge env set staging API_KEY=my-secret-key
   http-forge env unset staging OLD_VAR
+  http-forge generate -i ./collections -o ./api-clients
+  http-forge generate -i ./collections -o ./api-clients -c forgerock-login
+  http-forge generate -i ./collections -o ./api-clients -r forgerock-login/login-request
+  http-forge generate -i ./collections -o ./api-clients --overwrite --types-only
   http-forge generate-collection --curl "curl https://api.example.com/users"
   http-forge generate-collection --curl "curl -X POST -H 'Authorization: Bearer sk-abc' https://api.example.com/v1/users -d '{\"name\":\"Alice\"}'" --env dev
   http-forge generate-collection --postman ./MyCollection.postman_collection.json
