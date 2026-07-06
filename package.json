@@ -1,6 +1,6 @@
 {
   "name": "@http-forge/cli",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "description": "Standalone HTTP Forge launcher and Postman alternative for UI mode, API testing, CI/CD, and MCP server automation",
   "main": "dist/index.js",
   "bin": {

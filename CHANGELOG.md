@@ -5,6 +5,21 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.12 - 2026-07-06
+
+### Added
+
+- **`generate` command** — `http-forge generate` now provides typed client generation directly from the main CLI command surface:
+  - `--input/-i`, `--output/-o`
+  - `--collection/-c`, `--request/-r`
+  - `--overwrite`, `--types-only`, `--no-barrel`
+- **Codegen integration via dependency** — CLI now delegates generation to `@http-forge/codegen`, enabling a single entry command for run + generate workflows.
+
+### Changed
+
+- **README/docs discoverability for generation** — CLI landing docs now include a dedicated `generate` section and link migration guidance to reference docs.
+- **Keyword metadata alignment** — package keywords were synced with shared HTTP Forge family search terms while preserving CLI-specific discovery terms.
+
 ## 0.2.11 - 2026-07-05
 
 ### Added
