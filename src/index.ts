@@ -11,14 +11,15 @@
  */
 
 import {
-    handleCopyAs,
-    handleEnv,
-    handleGenerateCollection,
-    handleList,
-    handleMcpGroup,
-    handleRunGroup,
-    handleSchedule,
-    handleSuggestEnv
+  handleCopyAs,
+  handleEnv,
+  handleGenerateCollection,
+  handleLaunch,
+  handleList,
+  handleMcpGroup,
+  handleRunGroup,
+  handleSchedule,
+  handleSuggestEnv
 } from './commands';
 
 export async function main(): Promise<void> {
@@ -63,6 +64,10 @@ export async function main(): Promise<void> {
 
       case 'schedule':
         await handleSchedule(args.slice(1));
+        break;
+
+      case 'launch':
+        await handleLaunch(args.slice(1));
         break;
 
       case '-h':
@@ -126,6 +131,13 @@ COMMANDS:
       --port <num>        Port to listen on (default: 3100)
       --host <addr>       Host to bind to (default: 127.0.0.1)
       --workspace <path>  Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
+
+  launch [options] [path] Launch HTTP Forge in VS Code
+    Options:
+      --test              Launch with isolated "HTTP Forge" profile (default)
+      --dev               Launch with "Default" profile (all extensions)
+      --both              Launch both profiles side by side
+      --help              Show launcher help
 
   copy-as                 Print a request as a code snippet
     Required:
@@ -202,6 +214,9 @@ EXAMPLES:
   http-forge mcp start --port 3100
   http-forge mcp status
   http-forge mcp stop
+  http-forge launch
+  http-forge launch --dev
+  http-forge launch --both /path/to/workspace
   http-forge run collection "my-api" --env dev
   http-forge run request "Get Users" --collection "my-api" --env production
   http-forge run request "Get Users" --collection "my-api" --folder Auth --include tests

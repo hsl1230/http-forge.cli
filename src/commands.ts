@@ -11,6 +11,7 @@
 
 export { handleEnv } from './commands/env';
 export { handleGenerateCollection } from './commands/generate-collection';
+export { handleLaunch } from './commands/launch';
 export { handleList } from './commands/list';
 export { handleMcpGroup, handleMcpServer } from './commands/mcp';
 export {

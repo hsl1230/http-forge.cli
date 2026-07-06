@@ -5,6 +5,23 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.11 - 2026-07-05
+
+### Added
+
+- **`launch` command** — `http-forge launch` can now start HTTP Forge in UI mode directly from the terminal:
+  - `--test` launches the isolated `HTTP Forge` profile
+  - `--dev` launches the default VS Code profile with all installed extensions
+  - `--both` launches both modes side by side
+  - The command automatically selects the correct platform launcher script and forwards workspace arguments.
+
+- **Cross-platform launcher scripts** — added `scripts/http-forge.sh` and `scripts/http-forge.bat` for Linux/macOS and Windows. The scripts can detect VS Code, install it if missing, ensure the extension is installed in the selected profile, and then launch HTTP Forge.
+
+### Changed
+
+- **README split into landing page + reference docs** — the main README is now a short discoverability-first landing page, while detailed command documentation is preserved in `docs/cli-reference.md`.
+- **npm package metadata improved for discoverability** — description and keywords now better reflect standalone UI launching, Postman CLI alternative searches, API testing CLI usage, OpenAPI workflows, CI/CD, and MCP server automation.
+
 ## 0.2.5 - 2026-06-30
 
 ### Added
