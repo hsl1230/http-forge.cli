@@ -9,7 +9,7 @@
  *   src/output/format.ts  — ParsedArgs, parseArgs, outputResult, finalizeCiReports, ...
  */
 
-export { handleEnv } from './commands/env';
+export { handleEnv, handleEnvImport } from './commands/env';
 export { handleGenerate } from './commands/generate';
 export { handleGenerateCollection } from './commands/generate-collection';
 export { handleLaunch } from './commands/launch';

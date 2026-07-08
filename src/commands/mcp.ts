@@ -54,12 +54,12 @@ function isPidAlive(pid: number): boolean {
 
 function parseMcpServerArgs(args: string[]): {
   action: 'start' | 'stop' | 'status';
-  port: number;
+  port?: number;
   host: string;
   workspace: string;
 } {
   let action: 'start' | 'stop' | 'status' = 'start';
-  let port = 3100;
+  let port: number | undefined;
   let host = '127.0.0.1';
   let workspace = process.cwd();
 
@@ -147,11 +147,12 @@ export async function handleMcpServer(args: string[]): Promise<void> {
 
   const runtime = await createMcpRuntime({ workspaceFolder: workspace, port, host });
   await runtime.start();
+  const effectivePort = runtime.getPort();
 
   writeMcpState(stateFile, {
     pid: process.pid,
     host,
-    port,
+    port: effectivePort,
     workspace,
     startedAt: new Date().toISOString(),
   });
@@ -164,7 +165,7 @@ export async function handleMcpServer(args: string[]): Promise<void> {
   process.on('SIGTERM', async () => { await shutdown(); process.exit(0); });
   process.on('exit', () => { removeMcpState(stateFile); });
 
-  console.log(`MCP server is running on ${host}:${port}`);
+  console.log(`MCP server is running on ${host}:${effectivePort}`);
   console.log('Press Ctrl+C to stop');
 
   await new Promise(() => {});
@@ -184,11 +185,12 @@ Actions:
   status   Show MCP server status
 
 Options:
-  --port <num>        Port to listen on (default: 3100)
+  --port <num>        Port to listen on (overrides mcp.port in http-forge.config.json)
   --host <addr>       Host to bind to (default: 127.0.0.1)
   --workspace <path>  Workspace folder (default: current directory)
 
 Examples:
+  http-forge mcp start --workspace /path/to/project
   http-forge mcp start --port 3100 --workspace /path/to/project
   http-forge mcp status
   http-forge mcp stop

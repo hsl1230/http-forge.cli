@@ -18,12 +18,12 @@ import { createNodeContainer, runCollection, runFolder, runRequest, runSuite } f
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-    finalizeCiReports,
-    installStdoutGuard,
-    logResolution,
-    mergeProcessEnv,
-    outputResult,
-    parseArgs,
+  finalizeCiReports,
+  installStdoutGuard,
+  logResolution,
+  mergeProcessEnv,
+  outputResult,
+  parseArgs,
 } from '../output/format';
 
 // ────────────────────────────────────────────────────────
@@ -450,17 +450,44 @@ Examples:
 // ────────────────────────────────────────────────────────
 
 export async function handleCopyAs(args: string[]): Promise<void> {
+  if (args[0] === '--help' || args[0] === '-h') {
+    console.log(`
+Usage: http-forge copy-as [options]
+
+Generate a ready-to-run request snippet in curl, fetch, or python.
+
+Required:
+  --collection <ref>      Collection id, slug, or display name
+  --request <ref>         Request id, slug, or display name
+  --lang <name>           Target language: curl, fetch, python
+
+Options:
+  --folder <path>         Scope resolution to a sub-folder
+  --env <name>            Environment to resolve variables against
+  --environment <name>    Same as --env (long form)
+  --workspace <path>      Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
+  -h, --help              Show this help
+
+Examples:
+  http-forge copy-as --collection my-api --request get-users --lang curl
+  http-forge copy-as --collection my-api --request "Create User" --lang python
+`);
+    return;
+  }
+
   let workspace = process.cwd();
   let collectionRef: string | undefined;
   let requestRef: string | undefined;
   let folderRef: string | undefined;
   let lang: string | undefined;
+  let environment: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workspace' && i + 1 < args.length) workspace = args[++i];
     else if (args[i] === '--collection' && i + 1 < args.length) collectionRef = args[++i];
     else if (args[i] === '--request' && i + 1 < args.length) requestRef = args[++i];
     else if (args[i] === '--folder' && i + 1 < args.length) folderRef = args[++i];
+    else if ((args[i] === '--env' || args[i] === '--environment') && i + 1 < args.length) environment = args[++i];
     else if (args[i] === '--lang' && i + 1 < args.length) lang = args[++i];
   }
 
@@ -491,25 +518,60 @@ export async function handleCopyAs(args: string[]): Promise<void> {
   }
 
   try {
+    const container = createNodeContainer(workspace);
+
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { generateSnippet, parseRequest } = require('@http-forge/codegen');
     const collectionDir = path.dirname(requestJsonPath.replace(/\/[^/]+\/request\.json$/, ''));
     const req = parseRequest(requestJsonPath, collectionDir);
     if (!req) { console.error('Error: failed to parse request.json'); process.exit(2); }
+
+    if (environment) {
+      req.url = container.environmentConfig.resolveVariables(req.url, environment);
+
+      if (req.headers) {
+        for (const [k, v] of Object.entries(req.headers)) {
+          req.headers[k] = container.environmentConfig.resolveVariables(String(v), environment);
+        }
+      }
+
+      if (req.queryParams) {
+        for (const [k, v] of Object.entries(req.queryParams)) {
+          req.queryParams[k] = container.environmentConfig.resolveVariables(String(v), environment);
+        }
+      }
+
+      if (typeof req.body === 'string') {
+        req.body = container.environmentConfig.resolveVariables(req.body, environment);
+      } else if (req.body && typeof req.body === 'object') {
+        req.body = container.environmentConfig.resolveVariablesInObject(req.body, environment);
+      }
+    }
+
     process.stdout.write(generateSnippet(req, lang) + '\n');
+    try { (container as any).dispose?.(); } catch { /* best-effort */ }
   } catch {
     try {
+      const container = createNodeContainer(workspace);
       const raw = JSON.parse(fs.readFileSync(requestJsonPath, 'utf-8'));
       const method = (raw.method ?? 'GET').toUpperCase();
-      const url = raw.url ?? '';
+      const url = environment
+        ? container.environmentConfig.resolveVariables(raw.url ?? '', environment)
+        : (raw.url ?? '');
       const headers: Array<[string, string]> = (raw.headers ?? [])
         .filter((h: any) => h.enabled !== false)
-        .map((h: any) => [h.name as string, h.value as string]);
+        .map((h: any) => {
+          const value = environment
+            ? container.environmentConfig.resolveVariables(String(h.value ?? ''), environment)
+            : String(h.value ?? '');
+          return [h.name as string, value] as [string, string];
+        });
 
       if (lang === 'curl') {
         const parts = [`curl -X ${method} '${url}'`];
         for (const [k, v] of headers) parts.push(`  -H '${k}: ${v}'`);
         process.stdout.write(parts.join(' \\\n') + '\n');
+        try { (container as any).dispose?.(); } catch { /* best-effort */ }
       } else {
         console.error('Install @http-forge/codegen for fetch/python snippet support.');
         process.exit(2);

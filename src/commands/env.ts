@@ -6,12 +6,14 @@
  *   http-forge env set <env> <key> <value>
  *   http-forge env set <env> <key>=<value>
  *   http-forge env unset <env> <key>
- *   http-forge env select <name>
+ *   http-forge import env --postman <file> [--env <name>] [--overwrite]
  *
  * All subcommands support --workspace and --json / --output.
  */
 
-import { createNodeContainer } from '@http-forge/core';
+import { createNodeContainer, parsePostmanEnvironment } from '@http-forge/core';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { outputListResult } from '../output/format';
 
 export async function handleEnv(args: string[]): Promise<void> {
@@ -161,4 +163,124 @@ Options:
   } finally {
     try { (container as any).dispose?.(); } catch { /* best-effort */ }
   }
+}
+
+export async function handleEnvImport(args: string[]): Promise<void> {
+  if (args[0] === '--help' || args[0] === '-h') {
+    printEnvImportUsage();
+    return;
+  }
+
+  let workspace = process.env.HTTP_FORGE_WORKSPACE ?? process.cwd();
+  let outputFormat: 'json' | 'table' = 'json';
+  let postmanEnvFile: string | undefined;
+  let importEnvName: string | undefined;
+  let overwriteImport = false;
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--workspace' && i + 1 < args.length) {
+      workspace = args[++i];
+    } else if (arg === '--json') {
+      outputFormat = 'json';
+    } else if (arg === '--output' && i + 1 < args.length) {
+      outputFormat = args[++i] === 'table' ? 'table' : 'json';
+    } else if (arg === '--postman' && i + 1 < args.length) {
+      postmanEnvFile = args[++i];
+    } else if ((arg === '--env' || arg === '--environment') && i + 1 < args.length) {
+      importEnvName = args[++i];
+    } else if (arg === '--overwrite') {
+      overwriteImport = true;
+    }
+  }
+
+  if (!postmanEnvFile) {
+    console.error('Usage: http-forge import env --postman <file> [--env <name>] [--overwrite]');
+    process.exit(2);
+  }
+
+  const filePath = path.resolve(process.cwd(), postmanEnvFile);
+  if (!fs.existsSync(filePath)) {
+    console.error(`Error: Postman environment file not found: ${filePath}`);
+    process.exit(1);
+  }
+
+  const parsed = parsePostmanEnvironment(fs.readFileSync(filePath, 'utf-8'));
+  if (!parsed) {
+    console.error(`Error: failed to parse Postman environment file: ${filePath}`);
+    process.exit(1);
+  }
+
+  const container = createNodeContainer(workspace);
+
+  try {
+    const targetEnv = importEnvName || parsed.name || 'imported-environment';
+    const shared = container.environmentConfig.getSharedConfig();
+    if (!shared) {
+      console.error('Error: could not load environment config at this workspace');
+      process.exit(1);
+    }
+
+    shared.environments = shared.environments ?? {};
+    const alreadyExists = !!shared.environments[targetEnv];
+    if (alreadyExists && !overwriteImport) {
+      console.error(
+        `Error: environment "${targetEnv}" already exists. Re-run with --overwrite to replace variables.`
+      );
+      process.exit(1);
+    }
+
+    shared.environments[targetEnv] = shared.environments[targetEnv] ?? {};
+    shared.environments[targetEnv].variables = parsed.variables;
+    if (parsed.description) {
+      shared.environments[targetEnv].description = parsed.description;
+    }
+    container.environmentConfig.saveSharedConfig(shared);
+
+    const result = {
+      imported: true,
+      source: 'postman-environment',
+      file: filePath,
+      environment: targetEnv,
+      variableCount: Object.keys(parsed.variables).length,
+      overwritten: alreadyExists,
+    };
+
+    if (outputFormat === 'table') {
+      console.log(`Imported Postman environment: ${targetEnv}`);
+      console.log(`Variables: ${result.variableCount}`);
+      console.log(`Source: ${filePath}`);
+      if (alreadyExists) {
+        console.log('Mode: overwrite');
+      }
+    } else {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    }
+  } finally {
+    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+  }
+}
+
+function printEnvImportUsage(): void {
+  console.log(`
+Usage: http-forge import env --postman <file> [options]
+
+Import a Postman environment JSON export into an HTTP Forge environment.
+
+Required:
+  --postman <file>        Postman environment JSON file
+
+Options:
+  --env <name>            Target environment name override
+  --environment <name>    Same as --env (long form)
+  --overwrite             Replace target env variables if it already exists
+  --workspace <path>      Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
+  --output json|table     Output format (default: json)
+  --json                  Short for --output json
+  -h, --help              Show this help
+
+Examples:
+  http-forge import env --postman ./MyEnv.postman_environment.json
+  http-forge import env --postman ./MyEnv.postman_environment.json --env staging --overwrite
+`);
 }

@@ -1,15 +1,28 @@
+<div align="center">
+
+<a href="https://marketplace.visualstudio.com/items?itemName=henry-huang.http-forge">
+<img src="https://raw.githubusercontent.com/hsl1230/http-forge/main/resources/http-forge-icon.png" alt="HTTP Forge" width="120"/>
+</a>
+
+</div>
+
 # HTTP Forge CLI
 
 [![npm version](https://img.shields.io/npm/v/%40http-forge%2Fcli)](https://www.npmjs.com/package/@http-forge/cli)
 [![npm downloads](https://img.shields.io/npm/dm/%40http-forge%2Fcli)](https://www.npmjs.com/package/@http-forge/cli)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/henry-huang.http-forge?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=henry-huang.http-forge)
 [![license](https://img.shields.io/npm/l/%40http-forge%2Fcli)](LICENSE)
 [![node](https://img.shields.io/node/v/%40http-forge%2Fcli)](https://www.npmjs.com/package/@http-forge/cli)
 
-The standalone launcher, terminal, and automation CLI for HTTP Forge.
+The standalone launcher, terminal, and automation CLI for [HTTP Forge](https://marketplace.visualstudio.com/items?itemName=henry-huang.http-forge).
 
-Start HTTP Forge in UI mode from terminal, run API collections and suites in CI/CD, manage MCP server lifecycle, and generate JUnit/HTML reports for pipelines.
+Use it to launch HTTP Forge from terminal, run API collections and suites in CI/CD, manage MCP server lifecycle, and generate JUnit/HTML reports.
 
-Postman alternative for local-first, Git-friendly API workflows in both UI and CLI modes.
+Built for Postman-compatible workflows: import Postman collections/environments and run them with Postman-style scripting and assertions.
+
+For the full interactive experience, run `http-forge launch`.
+The launcher ensures VS Code and the HTTP Forge extension are installed in the target profile before opening it.
+Marketplace: [HTTP Forge](https://marketplace.visualstudio.com/items?itemName=henry-huang.http-forge)
 
 ## Who It Is For
 
@@ -35,6 +48,25 @@ Postman alternative for local-first, Git-friendly API workflows in both UI and C
 - Postman imports
 - GitHub Actions, Jenkins, GitLab CI, and other pipelines
 
+## Postman Compatibility (Import + Run)
+
+HTTP Forge CLI is designed for a full Postman-compatible flow in terminal:
+- Import Postman collection exports.
+- Import Postman environment exports.
+- Run imported requests, folders, collections, and suites in CI/CD.
+- Execute Postman-style scripts/assertions during runs.
+
+```bash
+# Import Postman collection
+http-forge import collection --postman ./MyApi.postman_collection.json
+
+# Import Postman environment
+http-forge import env --postman ./MyEnv.postman_environment.json --env staging --overwrite
+
+# Run imported collection using that environment
+http-forge run collection "MyApi" --env staging --exit-code
+```
+
 ## 1-Minute Quickstart
 
 ```bash
@@ -44,10 +76,16 @@ npm install --global @http-forge/cli
 # 2) Launch standalone HTTP Forge UI
 http-forge launch
 
-# 3) Run a collection
-http-forge run collection "my-api" --env dev --exit-code
+# 3) Import a Postman collection
+http-forge import collection --postman ./MyApi.postman_collection.json
 
-# 4) Run a suite with JUnit report for CI
+# 4) (Optional) Import a Postman environment
+http-forge import env --postman ./MyEnv.postman_environment.json --env staging --overwrite
+
+# 5) Run imported collection
+http-forge run collection "MyApi" --env staging --exit-code
+
+# 6) Run a suite with JUnit report for CI
 http-forge run suite "smoke-tests" --env staging \
   --reporter junit:results/junit.xml --exit-code
 ```
@@ -75,8 +113,8 @@ npm run build
 | `http-forge mcp ...` | Start/stop/status for MCP server |
 | `http-forge list ...` | List collections, suites, requests, folders, environments |
 | `http-forge env ...` | Get/set/unset environment variables |
+| `http-forge import ...` | Import collections and Postman environment files |
 | `http-forge generate ...` | Generate typed TypeScript API clients from collections |
-| `http-forge generate-collection ...` | Create collection from curl, Postman, or OpenAPI |
 | `http-forge suggest-env ...` | Detect hardcoded values and suggest env vars |
 | `http-forge schedule ...` | Generate scheduled CI workflow/cron config |
 | `http-forge copy-as ...` | Export request as curl/fetch/python snippet |
@@ -148,6 +186,19 @@ http-forge run suite "smoke-tests" \
 ```
 
 Use this in CI to fail the pipeline on assertion failures and publish JUnit artifacts.
+
+## MCP Port Configuration
+
+For `http-forge mcp start`, CLI uses `mcp.port` from `http-forge.config.json` by default (fallback `3100`).
+Use `--port` to override for a single run.
+
+```bash
+# Uses mcp.port in http-forge.config.json (default 3100)
+http-forge mcp start
+
+# One-off override
+http-forge mcp start --port 3201
+```
 
 ## Detailed Docs
 

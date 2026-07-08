@@ -6,10 +6,10 @@ Command-line interface for executing HTTP Forge collections, test suites, and MC
 
 - [Installation](#installation)
 - [Commands](#commands)
+  - [import](#import)
   - [launch](#launch-command)
   - [run](#run-command)
   - [generate](#generate)
-  - [generate-collection](#generate-collection)
   - [suggest-env](#suggest-env)
   - [schedule](#schedule)
   - [mcp](#5-manage-mcp-server)
@@ -42,6 +42,26 @@ npm run build
 ---
 
 ## Commands
+
+### `import`
+
+Import collections and Postman environment files.
+
+```bash
+# Import a collection
+http-forge import collection --postman ./MyApi.postman_collection.json
+http-forge import collection --openapi ./openapi.yaml --name "Payments API" --create-envs --env staging
+
+# Import a Postman environment file
+http-forge import env --postman ./MyEnv.postman_environment.json
+http-forge import env --postman ./MyEnv.postman_environment.json --env staging --overwrite
+```
+
+**Targets:**
+- `collection` — Import from curl command, Postman collection export, or OpenAPI spec
+- `env` — Import Postman environment JSON file
+
+---
 
 ### `generate`
 
@@ -258,27 +278,27 @@ http-forge run suite smoke-tests \
 
 ---
 
-### `generate-collection`
+### `collection` import target
 
 Create an HTTP Forge collection from a **curl command**, a **Postman Collection** export, or an **OpenAPI spec**. Optionally enhance the resulting collection with AI.
 
 ```bash
 # From a curl command
-http-forge generate-collection --curl "curl -X POST https://api.example.com/users \
+http-forge import collection --curl "curl -X POST https://api.example.com/users \
   -H 'Authorization: Bearer sk-abc123' \
   -d '{\"name\":\"Alice\"}'" \
   --env dev
 
 # From a Postman Collection v2.x export
-http-forge generate-collection --postman ./MyApi.postman_collection.json
+http-forge import collection --postman ./MyApi.postman_collection.json
 
 # From an OpenAPI spec — creates a collection and an environment from server URLs
-http-forge generate-collection --openapi ./openapi.yaml \
+http-forge import collection --openapi ./openapi.yaml \
   --name "Payments API" --create-envs --env staging
 
 # Any source + AI enhancement (requires OPENAI_API_KEY or ANTHROPIC_API_KEY)
-http-forge generate-collection --postman ./MyApi.postman_collection.json --ai
-http-forge generate-collection --openapi ./openapi.yaml --create-envs --ai
+http-forge import collection --postman ./MyApi.postman_collection.json --ai
+http-forge import collection --openapi ./openapi.yaml --create-envs --ai
 ```
 
 **Sources (exactly one required):**
@@ -376,6 +396,10 @@ The generated GitHub Actions workflow includes: Node 20 setup, `npm install -g @
 Start, stop, or check the status of an embedded MCP (Model Context Protocol) server for AI agent integration:
 
 ```bash
+# Uses mcp.port from http-forge.config.json (default 3100)
+http-forge mcp start
+
+# Explicitly override port for this run
 http-forge mcp start --port 3100
 http-forge mcp status
 http-forge mcp stop
@@ -384,7 +408,7 @@ http-forge mcp stop
 **Actions:** `start` | `stop` | `status`
 
 **Options:**
-- `--port <num>` — Port to listen on (default: 3100)
+- `--port <num>` — Port override for this run (otherwise uses `mcp.port` from `http-forge.config.json`, default `3100`)
 - `--host <addr>` — Host to bind to (default: 127.0.0.1)
 - `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
 
@@ -404,6 +428,12 @@ http-forge copy-as \
   --collection my-api \
   --request "Create User" \
   --lang python \
+  --env staging
+
+http-forge copy-as \
+  --collection my-api \
+  --request "Create User" \
+  --lang fetch \
   --environment staging
 ```
 
@@ -415,7 +445,8 @@ http-forge copy-as \
 **Optional:**
 - `--folder <path>` — Scope resolution to a sub-folder
 - `--workspace <path>` — Workspace folder (default: current directory)
-- `--environment <name>` — Environment to resolve variables against
+- `--env <name>` — Environment to resolve variables against
+- `--environment <name>` — Same as `--env` (long form)
 
 ---
 
@@ -462,6 +493,12 @@ http-forge env set staging API_KEY=my-secret-key   # key=value syntax
 
 # Remove a variable
 http-forge env unset staging OLD_VAR
+
+# Import a Postman environment export
+http-forge import env --postman ./MyEnv.postman_environment.json
+
+# Import into a specific env name, replacing existing vars
+http-forge import env --postman ./MyEnv.postman_environment.json --env staging --overwrite
 ```
 
 **Subcommands:** `list` | `get <name>` | `set <env> <key> <value>` | `unset <env> <key>`
@@ -625,6 +662,9 @@ Result: { suite: 'Smoke Tests', summary: { total: 12, passed: 11, failed: 1 } }
 ## MCP Server — JSON-RPC Usage
 
 After starting the server with `http-forge mcp start`, call `POST /`.
+
+By default, the server listens on `mcp.port` from `http-forge.config.json` (default `3100`).
+If you start with `--port`, use that value in the URLs below.
 
 ```bash
 # Initialize

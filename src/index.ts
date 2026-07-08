@@ -11,16 +11,17 @@
  */
 
 import {
-    handleCopyAs,
-    handleEnv,
-    handleGenerate,
-    handleGenerateCollection,
-    handleLaunch,
-    handleList,
-    handleMcpGroup,
-    handleRunGroup,
-    handleSchedule,
-    handleSuggestEnv
+  handleCopyAs,
+  handleEnv,
+  handleEnvImport,
+  handleGenerate,
+  handleGenerateCollection,
+  handleLaunch,
+  handleList,
+  handleMcpGroup,
+  handleRunGroup,
+  handleSchedule,
+  handleSuggestEnv
 } from './commands';
 
 export async function main(): Promise<void> {
@@ -32,47 +33,105 @@ export async function main(): Promise<void> {
   }
 
   const command = args[0];
+  const subArgs = args.slice(1);
 
   try {
     switch (command) {
       case 'mcp':
-        await handleMcpGroup(args.slice(1));
+        if (isHelpFlag(subArgs[0])) {
+          await handleMcpGroup(['--help']);
+          break;
+        }
+        await handleMcpGroup(subArgs);
         break;
 
       case 'run':
-        await handleRunGroup(args.slice(1));
+        if (isHelpFlag(subArgs[0])) {
+          await handleRunGroup(['--help']);
+          break;
+        }
+        await handleRunGroup(subArgs);
         break;
 
       case 'copy-as':
-        await handleCopyAs(args.slice(1));
+        if (isHelpFlag(subArgs[0])) {
+          await handleCopyAs(['--help']);
+          break;
+        }
+        await handleCopyAs(subArgs);
         break;
 
       case 'list':
-        await handleList(args.slice(1));
+        if (isHelpFlag(subArgs[0])) {
+          await handleList(['--help']);
+          break;
+        }
+        await handleList(subArgs);
         break;
 
       case 'env':
-        await handleEnv(args.slice(1));
+        if (isHelpFlag(subArgs[0])) {
+          await handleEnv(['--help']);
+          break;
+        }
+        await handleEnv(subArgs);
         break;
 
       case 'generate':
-        await handleGenerate(args.slice(1));
+        if (isHelpFlag(subArgs[0])) {
+          await handleGenerate(['--help']);
+          break;
+        }
+        await handleGenerate(subArgs);
         break;
 
-      case 'generate-collection':
-        await handleGenerateCollection(args.slice(1));
+      case 'import': {
+        const importTarget = subArgs[0];
+        const importArgs = subArgs.slice(1);
+
+        if (!importTarget || importTarget === '--help' || importTarget === '-h') {
+          printImportUsage();
+          process.exit(0);
+        }
+
+        if (importTarget === 'collection') {
+          await handleGenerateCollection(importArgs);
+          break;
+        }
+
+        if (importTarget === 'env' || importTarget === 'environment') {
+          await handleEnvImport(importArgs);
+          break;
+        }
+
+        console.error(`Unknown import target: ${importTarget}`);
+        printImportUsage();
+        process.exit(2);
         break;
+      }
 
       case 'suggest-env':
-        await handleSuggestEnv(args.slice(1));
+        if (isHelpFlag(subArgs[0])) {
+          await handleSuggestEnv(['--help']);
+          break;
+        }
+        await handleSuggestEnv(subArgs);
         break;
 
       case 'schedule':
-        await handleSchedule(args.slice(1));
+        if (isHelpFlag(subArgs[0])) {
+          await handleSchedule(['--help']);
+          break;
+        }
+        await handleSchedule(subArgs);
         break;
 
       case 'launch':
-        await handleLaunch(args.slice(1));
+        if (isHelpFlag(subArgs[0])) {
+          await handleLaunch(['--help']);
+          break;
+        }
+        await handleLaunch(subArgs);
         break;
 
       case '-h':
@@ -133,7 +192,7 @@ COMMANDS:
       stop                Stop MCP server
       status              Show MCP server status
     Options:
-      --port <num>        Port to listen on (default: 3100)
+      --port <num>        Port override (otherwise uses mcp.port from http-forge.config.json)
       --host <addr>       Host to bind to (default: 127.0.0.1)
       --workspace <path>  Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
 
@@ -151,8 +210,9 @@ COMMANDS:
       --lang <name>       Target language: curl, fetch, python
     Optional:
       --folder <path>     Scope resolution to this folder
+      --env <name>        Environment to resolve variables against
+      --environment <name> Same as --env (long form)
       --workspace <path>  Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
-      --environment <name> Environment to resolve variables against
 
   list <subcommand>       List workspace resources
     Subcommands:
@@ -189,18 +249,33 @@ COMMANDS:
       --types-only          Emit type definitions only, no runtime functions
       --no-barrel           Skip index.ts barrel file generation
 
-  generate-collection     Create a collection from a curl command, Postman file, or OpenAPI spec
-    Sources (one required):
+  import <target>         Import collections and environment files
+    Targets:
+      collection          Import a collection from curl, Postman, or OpenAPI
+      env                 Import a Postman environment JSON file
+    collection options:
       --curl <cmd>        curl command string (quote the whole thing)
       --postman <file>    Postman Collection v2.x JSON file
       --openapi <file>    OpenAPI 3.0 spec file (.json / .yaml / .yml)
-    Options:
       --name <name>       Collection name (default: derived from source)
-      --env <name>        Write detected vars (curl) or create env (openapi) with this name
+      --env <name>        write detected vars (curl) or create env (openapi)
+      --environment <name> Same as --env (long form)
       --create-envs       openapi: create environments from server URLs
-      --ai                Enhance collection with AI (needs OPENAI_API_KEY or ANTHROPIC_API_KEY)
+      --ai                Enhance collection with AI
       --workspace <path>  Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
       --output <fmt>      Output format: json or table (default: json)
+      --json              Short for --output json
+    env options:
+      --postman <file>    Postman environment JSON file
+      --env <name>        Target environment name override
+      --environment <name> Same as --env (long form)
+      --overwrite         Replace target env variables if it already exists
+      --workspace <path>  Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --output <fmt>      Output format: json or table (default: json)
+      --json              Short for --output json
+    Examples:
+      http-forge import collection --postman ./MyApi.postman_collection.json
+      http-forge import env --postman ./MyEnv.postman_environment.json --env staging --overwrite
 
   suggest-env             Detect hardcoded values and suggest environment variables
     Required:
@@ -259,14 +334,16 @@ EXAMPLES:
   http-forge env set staging BASE_URL https://staging.example.com
   http-forge env set staging API_KEY=my-secret-key
   http-forge env unset staging OLD_VAR
+  http-forge import env --postman ./MyEnv.postman_environment.json
+  http-forge import env --postman ./MyEnv.postman_environment.json --env staging --overwrite
   http-forge generate -i ./collections -o ./api-clients
   http-forge generate -i ./collections -o ./api-clients -c forgerock-login
   http-forge generate -i ./collections -o ./api-clients -r forgerock-login/login-request
   http-forge generate -i ./collections -o ./api-clients --overwrite --types-only
-  http-forge generate-collection --curl "curl https://api.example.com/users"
-  http-forge generate-collection --curl "curl -X POST -H 'Authorization: Bearer sk-abc' https://api.example.com/v1/users -d '{\"name\":\"Alice\"}'" --env dev
-  http-forge generate-collection --postman ./MyCollection.postman_collection.json
-  http-forge generate-collection --openapi ./openapi.yaml --name "Payments API" --create-envs --env staging
+  http-forge import collection --curl "curl https://api.example.com/users"
+  http-forge import collection --curl "curl -X POST -H 'Authorization: Bearer sk-abc' https://api.example.com/v1/users -d '{\"name\":\"Alice\"}'" --env dev
+  http-forge import collection --postman ./MyCollection.postman_collection.json
+  http-forge import collection --openapi ./openapi.yaml --name "Payments API" --create-envs --env staging
   http-forge suggest-env --collection my-api --output table
   http-forge suggest-env --collection my-api --apply --env staging
   http-forge schedule --suite smoke-tests --env staging
@@ -284,4 +361,45 @@ NOTES:
 OPTIONS:
   --help, -h              Show this help message
 `);
+}
+
+function printImportUsage(): void {
+  console.log(`
+Usage: http-forge import <target> [options]
+
+Targets:
+  collection              Import a collection from curl, Postman, or OpenAPI
+  env                     Import a Postman environment JSON file
+
+collection options:
+  --curl <cmd>            curl command string (quote the whole thing)
+  --postman <file>        Postman Collection v2.x JSON file
+  --openapi <file>        OpenAPI 3.0 spec file (.json / .yaml / .yml)
+  --name <name>           Collection name (default: derived from source)
+  --env <name>            write detected vars (curl) or create env (openapi)
+  --create-envs           openapi: create environments from server URLs
+  --ai                    Enhance collection with AI
+  --workspace <path>      Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
+  --output <fmt>          Output format: json or table (default: json)
+  --json                  Short for --output json
+
+env options:
+  --postman <file>        Postman environment JSON file
+  --env <name>            Target environment name override
+  --overwrite             Replace target env variables if it already exists
+  --workspace <path>      Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
+  --output <fmt>          Output format: json or table (default: json)
+  --json                  Short for --output json
+  -h, --help              Show this help
+
+Examples:
+  http-forge import collection --postman ./MyApi.postman_collection.json
+  http-forge import collection --openapi ./openapi.yaml --create-envs --env staging
+  http-forge import env --postman ./MyEnv.postman_environment.json
+  http-forge import env --postman ./MyEnv.postman_environment.json --env staging --overwrite
+`);
+}
+
+function isHelpFlag(arg?: string): boolean {
+  return arg === '--help' || arg === '-h';
 }

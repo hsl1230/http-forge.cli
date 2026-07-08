@@ -447,7 +447,7 @@ api-tests job (fails)
     │
     └── ai-analysis job
             │
-            ├── http-forge mcp start --port 3100
+            ├── http-forge mcp start
             │
             ├── node ai-analyze-failures.js
             │       │
@@ -487,7 +487,8 @@ If you already have a workflow and only want to add AI analysis on failure:
           npm install -g @http-forge/cli
           npm install @anthropic-ai/sdk @modelcontextprotocol/sdk
       - run: |
-          http-forge mcp start --port 3100 --workspace "$GITHUB_WORKSPACE" &
+          # Uses mcp.port from http-forge.config.json (default 3100)
+          http-forge mcp start --workspace "$GITHUB_WORKSPACE" &
           sleep 3
           node .github/scripts/ai-analyze-failures.js
         env:

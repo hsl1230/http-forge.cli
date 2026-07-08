@@ -1,5 +1,5 @@
 /**
- * generate-collection command — create an HTTP Forge collection from:
+ * import collection command target — create an HTTP Forge collection from:
  *   --curl     a curl command string
  *   --postman  a Postman collection JSON file
  *   --openapi  an OpenAPI 3.0 spec file (JSON or YAML)
@@ -9,12 +9,12 @@
  */
 
 import {
-    ServiceIdentifiers,
-    countRequests,
-    createNodeContainer,
-    enhanceCollection,
-    parseCurlCommand,
-    type IOpenApiImporter,
+  ServiceIdentifiers,
+  countRequests,
+  createNodeContainer,
+  enhanceCollection,
+  parseCurlCommand,
+  type IOpenApiImporter,
 } from '@http-forge/core';
 import * as path from 'path';
 import { createCliAiProvider } from '../ai/providers';
@@ -211,7 +211,7 @@ export async function handleGenerateCollection(args: string[]): Promise<void> {
 
 function printUsage(): void {
   process.stdout.write(`
-Usage: http-forge generate-collection <source> [options]
+Usage: http-forge import collection <source> [options]
 
 Create an HTTP Forge collection from a curl command, a Postman collection file,
 or an OpenAPI spec.
@@ -228,29 +228,32 @@ Options:
                             openapi: default is filename without extension
   --env <name>            curl:    write detected variables (tokens, API keys) to this env
                           openapi: create an environment with server URLs using this name
+  --environment <name>    Same as --env (long form)
   --create-envs           openapi: create environments from server URLs
-                          (uses --name if --env not specified)  --ai                    Enhance the collection with AI after import/generation
+                          (uses --name if --env not specified)
+  --ai                    Enhance the collection with AI after import/generation
                           Reads OPENAI_API_KEY or ANTHROPIC_API_KEY from env
                           Override model via OPENAI_MODEL or ANTHROPIC_MODEL
-                          Force provider: HTTP_FORGE_AI_PROVIDER=openai|anthropic  --workspace <path>      Workspace folder (default: \$HTTP_FORGE_WORKSPACE or cwd)
+                          Force provider: HTTP_FORGE_AI_PROVIDER=openai|anthropic
+  --workspace <path>      Workspace folder (default: \$HTTP_FORGE_WORKSPACE or cwd)
   --output json|table     Output format (default: json)
   --json                  Short for --output json
   -h, --help              Show this help
 
 Examples:
   # From curl
-  http-forge generate-collection --curl "curl https://api.example.com/users"
-  http-forge generate-collection --curl "curl -X POST https://api.example.com/v1/users \\
+  http-forge import collection --curl "curl https://api.example.com/users"
+  http-forge import collection --curl "curl -X POST https://api.example.com/v1/users \
     -H 'Authorization: Bearer sk-abc123' -d '{\\"name\\":\\"Alice\\"}'" --env dev
 
   # From Postman collection export
-  http-forge generate-collection --postman ./MyCollection.postman_collection.json
+  http-forge import collection --postman ./MyCollection.postman_collection.json
 
   # From Postman — with AI enhancement
-  http-forge generate-collection --postman ./MyCollection.postman_collection.json --ai
+  http-forge import collection --postman ./MyCollection.postman_collection.json --ai
 
   # From OpenAPI spec, creating an environment from server URLs
-  http-forge generate-collection --openapi ./openapi.yaml --name "Payments API" --create-envs --env staging --ai
+  http-forge import collection --openapi ./openapi.yaml --name "Payments API" --create-envs --env staging --ai
 
 `);
 }

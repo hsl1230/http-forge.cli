@@ -5,6 +5,24 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.15 - 2026-07-08
+
+### Added
+
+- **`env import` command** — import Postman environment exports into HTTP Forge environments:
+  - `http-forge env import --postman ./MyEnv.postman_environment.json`
+  - Optional `--env <name>` to override target environment name
+  - Optional `--overwrite` to replace variables in an existing environment
+- **Top-level `import` aliases for consistency**:
+  - `http-forge import collection ...` (alias of `generate-collection`)
+  - `http-forge import env ...` (alias of `env import`)
+
+### Changed
+
+- **MCP port resolution is now config-first in CLI** — `http-forge mcp start` now defers to `mcp.port` in `http-forge.config.json` when `--port` is not provided (default remains `3100`).
+- **MCP documentation alignment** — CLI README and reference docs now clarify config-first port behavior and one-off `--port` override semantics.
+- **Import command surface is now canonical** — use `http-forge import collection ...` and `http-forge import env ...`; legacy top-level `generate-collection` and `env import` forms are no longer documented/supported.
+
 ## 0.2.12 - 2026-07-06
 
 ### Added
