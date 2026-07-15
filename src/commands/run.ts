@@ -18,12 +18,12 @@ import { createNodeContainer, runCollection, runFolder, runRequest, runSuite } f
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-  finalizeCiReports,
-  installStdoutGuard,
-  logResolution,
-  mergeProcessEnv,
-  outputResult,
-  parseArgs,
+    finalizeCiReports,
+    installStdoutGuard,
+    logResolution,
+    mergeProcessEnv,
+    outputResult,
+    parseArgs,
 } from '../output/format';
 
 // ────────────────────────────────────────────────────────
@@ -502,29 +502,36 @@ Examples:
     process.exit(2);
   }
 
-  const collectionsDir = path.join(workspace, 'http-forge-assets', 'collections');
-  const altCollectionsDir = path.join(workspace, 'collections');
-  const baseDir = fs.existsSync(altCollectionsDir) ? altCollectionsDir : collectionsDir;
+  const container = createNodeContainer(workspace);
+  const configuredCollectionsDir = container.config.getCollectionsPath();
+  const baseDir = configuredCollectionsDir;
 
   if (!fs.existsSync(baseDir)) {
-    console.error(`Error: collections directory not found at ${baseDir}`);
+    console.error(
+      `Error: collections directory not found at ${baseDir}. ` +
+      'Update storage.root in .http-forge/http-forge.config.json if needed.'
+    );
+    try { (container as any).dispose?.(); } catch { /* best-effort */ }
     process.exit(2);
   }
 
   const requestJsonPath = findRequestJson(baseDir, collectionRef, requestRef, folderRef);
   if (!requestJsonPath) {
     console.error(`Error: could not find request "${requestRef}" in collection "${collectionRef}"`);
+    try { (container as any).dispose?.(); } catch { /* best-effort */ }
     process.exit(2);
   }
 
   try {
-    const container = createNodeContainer(workspace);
-
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { generateSnippet, parseRequest } = require('@http-forge/codegen');
     const collectionDir = path.dirname(requestJsonPath.replace(/\/[^/]+\/request\.json$/, ''));
     const req = parseRequest(requestJsonPath, collectionDir);
-    if (!req) { console.error('Error: failed to parse request.json'); process.exit(2); }
+    if (!req) {
+      console.error('Error: failed to parse request.json');
+      try { (container as any).dispose?.(); } catch { /* best-effort */ }
+      process.exit(2);
+    }
 
     if (environment) {
       req.url = container.environmentConfig.resolveVariables(req.url, environment);
@@ -574,10 +581,12 @@ Examples:
         try { (container as any).dispose?.(); } catch { /* best-effort */ }
       } else {
         console.error('Install @http-forge/codegen for fetch/python snippet support.');
+        try { (container as any).dispose?.(); } catch { /* best-effort */ }
         process.exit(2);
       }
     } catch (e) {
       console.error(`Error reading request.json: ${(e as Error).message}`);
+      try { (container as any).dispose?.(); } catch { /* best-effort */ }
       process.exit(2);
     }
   }

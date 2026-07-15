@@ -192,7 +192,7 @@ COMMANDS:
       stop                Stop MCP server
       status              Show MCP server status
     Options:
-      --port <num>        Port override (otherwise uses mcp.port from http-forge.config.json)
+      --port <num>        Port override (otherwise uses mcp.port from .http-forge/http-forge.config.json)
       --host <addr>       Host to bind to (default: 127.0.0.1)
       --workspace <path>  Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
 

@@ -8,12 +8,12 @@
  *   http-forge mcp status
  */
 
-import { createMcpRuntime } from '@http-forge/core';
+import { createMcpRuntime, createNodeContainer, DEFAULT_CONFIG } from '@http-forge/core';
 import * as fs from 'fs';
 import * as path from 'path';
 
 // ────────────────────────────────────────────────────────
-// State persistence (written to .http-forge-cache/)
+// State persistence (written under configured cache directory)
 // ────────────────────────────────────────────────────────
 
 interface McpServerState {
@@ -26,8 +26,26 @@ interface McpServerState {
 
 const MCP_STATE_FILENAME = 'mcp-server.json';
 
+function resolveMcpCacheDir(workspace: string): string {
+  const fallback = path.resolve(workspace, path.dirname(DEFAULT_CONFIG.storage.history));
+
+  let container: any;
+  try {
+    container = createNodeContainer(workspace);
+    const historyPath = path.resolve(container.config.getHistoryPath());
+    const historyParent = path.dirname(historyPath);
+    return historyParent;
+  } catch {
+    // Ignore config read failures and fall back to core default cache directory.
+  } finally {
+    try { container?.dispose?.(); } catch { /* best-effort */ }
+  }
+
+  return fallback;
+}
+
 function getMcpStateFile(workspace: string): string {
-  return path.join(workspace, '.http-forge-cache', MCP_STATE_FILENAME);
+  return path.join(resolveMcpCacheDir(workspace), MCP_STATE_FILENAME);
 }
 
 function writeMcpState(filePath: string, state: McpServerState): void {
@@ -185,7 +203,7 @@ Actions:
   status   Show MCP server status
 
 Options:
-  --port <num>        Port to listen on (overrides mcp.port in http-forge.config.json)
+  --port <num>        Port to listen on (overrides mcp.port in .http-forge/http-forge.config.json)
   --host <addr>       Host to bind to (default: 127.0.0.1)
   --workspace <path>  Workspace folder (default: current directory)
 

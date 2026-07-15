@@ -12,6 +12,46 @@
 import { createNodeContainer, flattenRequests, resolveCollectionRef } from '@http-forge/core';
 import { outputListResult } from '../output/format';
 
+function countSuiteRequestNodes(suite: any): number {
+  const walk = (nodes: any[] | undefined): number => {
+    if (!Array.isArray(nodes)) return 0;
+
+    let total = 0;
+    for (const node of nodes) {
+      if (!node || typeof node !== 'object') continue;
+      if (node.type === 'request') total += 1;
+
+      total += walk((node as any).nodes);
+      total += walk((node as any).then);
+      total += walk((node as any).else);
+      total += walk((node as any).default);
+
+      const elseifBranches = (node as any).elseif;
+      if (Array.isArray(elseifBranches)) {
+        for (const branch of elseifBranches) {
+          total += walk((branch as any)?.nodes);
+          total += walk((branch as any)?.then);
+        }
+      }
+
+      const branches = (node as any).branches;
+      if (Array.isArray(branches)) {
+        for (const branch of branches) {
+          total += walk((branch as any)?.nodes);
+        }
+      }
+    }
+
+    return total;
+  };
+
+  const fromNodes = walk((suite as any)?.nodes);
+  if (fromNodes > 0) return fromNodes;
+
+  const legacyRequests = (suite as any)?.requests;
+  return Array.isArray(legacyRequests) ? legacyRequests.length : 0;
+}
+
 export async function handleList(args: string[]): Promise<void> {
   const subcommand = args[0];
 
@@ -76,7 +116,7 @@ Options:
         id: s.id,
         name: s.name,
         description: s.description ?? '',
-        requestCount: s.requests.length,
+        requestCount: countSuiteRequestNodes(s),
         iterations: s.config?.iterations ?? 1,
       }));
       outputListResult(result, outputFormat, ['id', 'name', 'requestCount', 'iterations', 'description']);

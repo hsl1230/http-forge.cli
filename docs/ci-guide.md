@@ -62,7 +62,7 @@ Use `--reporter <name>` or `--reporter <name>:<path>` to produce reports. The fl
 | `junit` | XML (JUnit 5 format) | CI systems, PR annotations, Allure |
 | `html` | Self-contained HTML | Local review, email, Confluence |
 
-When no `:<path>` is given, the file is written to the HTTP Forge cache (`.http-forge-cache/results/<suite>/<run>/`) and the path is included in the JSON result under `junitReport.path` / `report.uri`.
+When no `:<path>` is given, the file is written to the HTTP Forge cache (`.http-forge/.cache/results/<suite>/<run>/`) and the path is included in the JSON result under `junitReport.path` / `report.uri`.
 
 ---
 
@@ -103,7 +103,7 @@ jobs:
         uses: http-forge/http-forge.cli@main    # pin a release tag in production
         with:
           suite: smoke-tests
-          workspace: ./http-forge-assets        # path to your workspace
+          workspace: ./.http-forge/assets        # path to your workspace
           environment: staging
           reporters: 'junit:test-results/junit.xml'
           extra_args: '--var BASE_URL=${{ vars.STAGING_URL }} --var API_KEY=${{ secrets.API_KEY }}'
@@ -170,7 +170,7 @@ jobs:
         run: |
           mkdir -p test-results
           http-forge run suite \
-            --workspace ./http-forge-assets \
+            --workspace ./.http-forge/assets \
             --suite smoke-tests \
             --environment staging \
             --reporter junit:test-results/junit.xml \
@@ -191,7 +191,7 @@ jobs:
       - name: Run suite (HTML + JUnit)
         run: |
           http-forge run suite \
-            --workspace ./http-forge-assets \
+            --workspace ./.http-forge/assets \
             --suite smoke-tests \
             --reporter html:reports/run.html \
             --reporter junit:test-results/junit.xml \
@@ -223,7 +223,7 @@ Use the Docker image for a fully self-contained, reproducible environment.
         run: |
           mkdir -p test-results
           docker run --rm \
-            -v "${{ github.workspace }}/http-forge-assets:/workspace" \
+            -v "${{ github.workspace }}/.http-forge/assets:/workspace" \
             -v "${{ github.workspace }}/test-results:/results" \
             ghcr.io/http-forge/cli:latest \
             run suite smoke-tests \
@@ -242,7 +242,7 @@ cd http-forge.cli
 docker build -t http-forge-cli .
 
 docker run --rm \
-  -v "$PWD/../http-forge-assets:/workspace" \
+  -v "$PWD/../.http-forge/assets:/workspace" \
   http-forge-cli \
   run suite smoke-tests --reporter junit:results/junit.xml --exit-code
 ```
@@ -259,7 +259,7 @@ npm install --global @http-forge/cli@latest
 
 # Run
 http-forge run suite \
-  --workspace ./http-forge-assets \
+  --workspace ./.http-forge/assets \
   --suite regression \
   --environment staging \
   --reporter junit:test-results/junit.xml \
@@ -306,7 +306,7 @@ Two special variables control CLI defaults:
 Set them in your shell profile or CI pipeline so you can run commands without flags:
 
 ```bash
-export HTTP_FORGE_WORKSPACE=/path/to/http-forge-assets
+export HTTP_FORGE_WORKSPACE=/path/to/.http-forge/assets
 export HTTP_FORGE_ENV=staging
 
 http-forge run suite "Smoke Tests" --exit-code  # no --workspace or --env needed
@@ -401,7 +401,7 @@ jobs:
       - name: Run suite (${{ matrix.environment }})
         run: |
           http-forge run suite \
-            --workspace ./http-forge-assets \
+            --workspace ./.http-forge/assets \
             --suite smoke-tests \
             --environment ${{ matrix.environment }} \
             --reporter junit:results/${{ matrix.environment }}-junit.xml \
@@ -487,7 +487,7 @@ If you already have a workflow and only want to add AI analysis on failure:
           npm install -g @http-forge/cli
           npm install @anthropic-ai/sdk @modelcontextprotocol/sdk
       - run: |
-          # Uses mcp.port from http-forge.config.json (default 3100)
+          # Uses mcp.port from .http-forge/http-forge.config.json (default 3100)
           http-forge mcp start --workspace "$GITHUB_WORKSPACE" &
           sleep 3
           node .github/scripts/ai-analyze-failures.js
@@ -507,7 +507,7 @@ If you already have a workflow and only want to add AI analysis on failure:
 
 ### `Test suite "..." not found`
 
-The `--suite` value can be a suite **name** or **id** (case-insensitive name matching is supported). If the suite is still not found, check that the `--workspace` path points to a directory that contains a `suites/` folder. Check that the workspace is set to the root of your HTTP Forge assets (e.g. `./http-forge-assets`), not the repository root.
+The `--suite` value can be a suite **name** or **id** (case-insensitive name matching is supported). If the suite is still not found, check that the `--workspace` path points to a directory that contains a `suites/` folder. Check that the workspace is set to the root of your HTTP Forge assets (e.g. `./.http-forge/assets`), not the repository root.
 
 ### All requests fail with `Invalid URL`
 

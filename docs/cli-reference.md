@@ -396,7 +396,7 @@ The generated GitHub Actions workflow includes: Node 20 setup, `npm install -g @
 Start, stop, or check the status of an embedded MCP (Model Context Protocol) server for AI agent integration:
 
 ```bash
-# Uses mcp.port from http-forge.config.json (default 3100)
+# Uses mcp.port from .http-forge/http-forge.config.json (default 3100)
 http-forge mcp start
 
 # Explicitly override port for this run
@@ -408,7 +408,7 @@ http-forge mcp stop
 **Actions:** `start` | `stop` | `status`
 
 **Options:**
-- `--port <num>` — Port override for this run (otherwise uses `mcp.port` from `http-forge.config.json`, default `3100`)
+- `--port <num>` — Port override for this run (otherwise uses `mcp.port` from `.http-forge/http-forge.config.json`, default `3100`)
 - `--host <addr>` — Host to bind to (default: 127.0.0.1)
 - `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
 
@@ -553,7 +553,7 @@ http-forge run suite smoke-tests \
 - name: Run API tests
   run: |
     http-forge run suite smoke-tests \
-      --workspace ./http-forge-assets \
+      --workspace ./.http-forge/assets \
       --environment staging \
       --reporter junit:test-results/junit.xml \
       --exit-code
@@ -574,7 +574,7 @@ http-forge run suite smoke-tests \
 - uses: http-forge/http-forge.cli@main
   with:
     suite: smoke-tests
-    workspace: ./http-forge-assets
+    workspace: ./.http-forge/assets
     environment: staging
     reporters: 'junit:test-results/junit.xml'
     extra_args: '--var API_KEY=${{ secrets.API_KEY }}'
@@ -584,7 +584,7 @@ http-forge run suite smoke-tests \
 
 ```bash
 docker run --rm \
-  -v "$PWD/http-forge-assets:/workspace" \
+  -v "$PWD/.http-forge/assets:/workspace" \
   -v "$PWD/results:/results" \
   ghcr.io/http-forge/cli:latest \
   run suite smoke-tests \
@@ -647,7 +647,7 @@ http-forge run suite smoke-tests \
       "failedTests": [{ "name": "Status is 201", "message": "expected 500 to equal 201" }]
     }
   ],
-  "junitReport": { "path": "/tmp/.http-forge-cache/results/smoke-tests/run-20260626-141501/junit.xml" }
+  "junitReport": { "path": "/tmp/.http-forge/.cache/results/smoke-tests/run-20260626-141501/junit.xml" }
 }
 ```
 
@@ -663,7 +663,7 @@ Result: { suite: 'Smoke Tests', summary: { total: 12, passed: 11, failed: 1 } }
 
 After starting the server with `http-forge mcp start`, call `POST /`.
 
-By default, the server listens on `mcp.port` from `http-forge.config.json` (default `3100`).
+By default, the server listens on `mcp.port` from `.http-forge/http-forge.config.json` (default `3100`).
 If you start with `--port`, use that value in the URLs below.
 
 ```bash

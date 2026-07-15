@@ -5,6 +5,32 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.20 - 2026-07-13
+
+### Changed
+
+- **MCP suite flow-tool parity via core runtime update** — CLI MCP server now ships with `@http-forge/core` `^0.6.20`, inheriting flow-first suite behavior and legacy suite-request compatibility alignment:
+  - `add_suite_requests` now follows root node insertion semantics matching `add_suite_node` with request nodes.
+  - node-path suite tools (`get_suite_node`, `list_suite_node_paths`, `add_suite_node`, `update_suite_node`, `remove_suite_node`, `move_suite_node`) are available through CLI-hosted MCP runtime.
+- **`list suites` now uses flow-first request counting** — suite request totals are computed from `suite.nodes` recursively (with legacy `suite.requests` fallback), so CLI suite management reflects flow graph structure correctly.
+
+## 0.2.19 - 2026-07-10
+
+### Fixed
+
+- **No-config backward compatibility for legacy storage/cache paths** — CLI operations now preserve access to historical workspace data through core config resolution fallbacks when no config file exists:
+  - collections: `./http-forge-assets`
+  - cache/history/results: `./.http-forge-cache/{histories,results}`
+- **Config-first precedence unchanged** — when config exists, CLI continues using configured paths.
+
+## 0.2.18 - 2026-07-10
+
+### Changed
+
+- **MCP state path is now configuration-driven** — `http-forge mcp` resolves the state file directory from configured cache/history paths first, with fallback to core defaults.
+- **`copy-as` path resolution is now config-only** — request snippet generation now uses configured collections path instead of hardcoded legacy directory fallbacks.
+- **CLI help and behavior alignment with config-first model** — command behavior continues to prefer project config values and treat CLI flags as explicit one-off overrides.
+
 ## 0.2.15 - 2026-07-08
 
 ### Added

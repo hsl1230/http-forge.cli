@@ -30,7 +30,7 @@ jobs:
         uses: http-forge/http-forge.cli@main     # pin a tag in production
         with:
           suite: smoke-tests
-          workspace: ./http-forge-assets         # path to your workspace
+          workspace: ./.http-forge/assets         # path to your workspace
           environment: staging
           reporters: 'junit:test-results/junit.xml'
           extra_args: '--var BASE_URL=${{ secrets.STAGING_BASE_URL }} --var API_KEY=${{ secrets.API_KEY }}'
@@ -59,7 +59,7 @@ jobs:
         run: |
           mkdir -p test-results
           docker run --rm \
-            -v "${{ github.workspace }}/http-forge-assets:/workspace" \
+            -v "${{ github.workspace }}/.http-forge/assets:/workspace" \
             -v "${{ github.workspace }}/test-results:/results" \
             ghcr.io/http-forge/cli:latest \
             run-suite \
@@ -96,7 +96,7 @@ jobs:
         run: |
           mkdir -p test-results
           http-forge run-suite \
-            --workspace ./http-forge-assets \
+            --workspace ./.http-forge/assets \
             --suite smoke-tests \
             --environment staging \
             --reporter junit:test-results/junit.xml \
