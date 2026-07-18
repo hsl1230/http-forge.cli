@@ -203,9 +203,14 @@ Options:
       console.error(
         `Unknown list subcommand: "${subcommand}". Valid: collections, suites, environments, requests, folders`
       );
+      container.dispose();
       process.exit(2);
     }
-  } finally {
-    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+    // Dispose watchers so the event loop can exit after a read-only command.
+    container.dispose();
+    process.exit(0);
+  } catch (err) {
+    try { container.dispose(); } catch { /* best-effort */ }
+    throw err;
   }
 }

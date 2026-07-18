@@ -18,12 +18,12 @@ import { createNodeContainer, runCollection, runFolder, runRequest, runSuite } f
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-    finalizeCiReports,
-    installStdoutGuard,
-    logResolution,
-    mergeProcessEnv,
-    outputResult,
-    parseArgs,
+  finalizeCiReports,
+  installStdoutGuard,
+  logResolution,
+  mergeProcessEnv,
+  outputResult,
+  parseArgs,
 } from '../output/format';
 
 // ────────────────────────────────────────────────────────
@@ -59,6 +59,7 @@ export async function handleRunRequest(args: string[]): Promise<void> {
     process.exit(2);
   } finally {
     restore();
+    process.exit(0);
   }
 }
 
@@ -97,6 +98,7 @@ export async function handleRunCollection(args: string[]): Promise<void> {
     process.exit(2);
   } finally {
     restore();
+    process.exit(0);
   }
 }
 
@@ -141,6 +143,7 @@ export async function handleRunFolder(args: string[]): Promise<void> {
     process.exit(2);
   } finally {
     restore();
+    process.exit(0);
   }
 }
 
@@ -165,7 +168,7 @@ async function resolveSuiteId(workspace: string, ref: string): Promise<string> {
     // fall through — let runSuite produce the "not found" error
     return ref;
   } finally {
-    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+    container.dispose();
   }
 }
 
@@ -201,6 +204,7 @@ export async function handleRunSuite(args: string[]): Promise<void> {
     process.exit(2);
   } finally {
     restore();
+    process.exit(0);
   }
 }
 
@@ -511,14 +515,14 @@ Examples:
       `Error: collections directory not found at ${baseDir}. ` +
       'Update storage.root in .http-forge/http-forge.config.json if needed.'
     );
-    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+    container.dispose();
     process.exit(2);
   }
 
   const requestJsonPath = findRequestJson(baseDir, collectionRef, requestRef, folderRef);
   if (!requestJsonPath) {
     console.error(`Error: could not find request "${requestRef}" in collection "${collectionRef}"`);
-    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+    container.dispose();
     process.exit(2);
   }
 
@@ -529,7 +533,7 @@ Examples:
     const req = parseRequest(requestJsonPath, collectionDir);
     if (!req) {
       console.error('Error: failed to parse request.json');
-      try { (container as any).dispose?.(); } catch { /* best-effort */ }
+      container.dispose();
       process.exit(2);
     }
 
@@ -556,7 +560,8 @@ Examples:
     }
 
     process.stdout.write(generateSnippet(req, lang) + '\n');
-    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+    container.dispose();
+    process.exit(0);
   } catch {
     try {
       const container = createNodeContainer(workspace);
@@ -578,15 +583,16 @@ Examples:
         const parts = [`curl -X ${method} '${url}'`];
         for (const [k, v] of headers) parts.push(`  -H '${k}: ${v}'`);
         process.stdout.write(parts.join(' \\\n') + '\n');
-        try { (container as any).dispose?.(); } catch { /* best-effort */ }
+        container.dispose();
+        process.exit(0);
       } else {
         console.error('Install @http-forge/codegen for fetch/python snippet support.');
-        try { (container as any).dispose?.(); } catch { /* best-effort */ }
+        container.dispose();
         process.exit(2);
       }
     } catch (e) {
       console.error(`Error reading request.json: ${(e as Error).message}`);
-      try { (container as any).dispose?.(); } catch { /* best-effort */ }
+      try { container.dispose(); } catch { /* best-effort */ }
       process.exit(2);
     }
   }

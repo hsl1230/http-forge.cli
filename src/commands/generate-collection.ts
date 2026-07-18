@@ -205,7 +205,8 @@ export async function handleGenerateCollection(args: string[]): Promise<void> {
       }
     }
   } finally {
-    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+    container.dispose();
+    process.exit(0);
   }
 }
 

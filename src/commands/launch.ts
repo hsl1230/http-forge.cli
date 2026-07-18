@@ -2,21 +2,6 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-function parseShellKind(): 'powershell' | 'cmd' | 'bash' | 'sh' | 'unknown' {
-  if (process.platform === 'win32') {
-    const comspec = (process.env.ComSpec || process.env.COMSPEC || '').toLowerCase();
-    const ps = (process.env.PSModulePath || '').toLowerCase();
-    if (comspec.includes('powershell') || ps.length > 0) return 'powershell';
-    return 'cmd';
-  }
-
-  const shell = (process.env.SHELL || '').toLowerCase();
-  if (shell.includes('bash')) return 'bash';
-  if (shell.includes('zsh') || shell.includes('ksh') || shell.includes('dash')) return 'sh';
-  if (shell.includes('/sh')) return 'sh';
-  return 'unknown';
-}
-
 function resolveLauncherScript(): { scriptPath: string; platform: 'win32' | 'unix' } {
   const root = path.resolve(__dirname, '..', '..');
   const isWindows = process.platform === 'win32';
@@ -42,7 +27,6 @@ function quoteForCmdArg(arg: string): string {
 
 export async function handleLaunch(args: string[]): Promise<void> {
   const { scriptPath, platform } = resolveLauncherScript();
-  const shellKind = parseShellKind();
 
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
@@ -73,13 +57,20 @@ NOTES:
     if (platform === 'win32') {
       const cmdExe = process.env.ComSpec || process.env.COMSPEC || 'cmd.exe';
       const commandLine = `"${scriptPath}" ${modeArgs.map(quoteForCmdArg).join(' ')}`.trim();
-      child = spawn(cmdExe, ['/d', '/s', '/c', commandLine], {
+      // cmd.exe /c quirk: when the command begins with ", the entire argument must
+      // be wrapped in an additional outer pair of quotes so cmd strips them and
+      // executes the inner quoted path correctly.
+      // windowsVerbatimArguments prevents Node.js from re-escaping the quotes,
+      // which would turn "path" into \"path\" and break cmd.exe's parsing.
+      const cmdArg = commandLine.startsWith('"') ? `"${commandLine}"` : commandLine;
+      child = spawn(cmdExe, ['/d', '/s', '/c', cmdArg], {
         stdio: 'inherit',
         windowsHide: false,
+        windowsVerbatimArguments: true,
       });
     } else {
-      const preferredShell = shellKind === 'bash' ? '/bin/bash' : '/bin/sh';
-      child = spawn(preferredShell, [scriptPath, ...modeArgs], {
+      // The script declares #!/bin/bash; spawn it directly so the shebang is honoured.
+      child = spawn(scriptPath, modeArgs, {
         stdio: 'inherit',
       });
     }

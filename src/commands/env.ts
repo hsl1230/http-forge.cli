@@ -69,6 +69,8 @@ Options:
         variableCount: Object.keys(e.variables ?? {}).length,
       }));
       outputListResult(result, outputFormat, ['name', 'active', 'variableCount']);
+      container.dispose();
+      process.exit(0);
 
     } else if (subcommand === 'get') {
       const envName = positionals[0];
@@ -97,6 +99,8 @@ Options:
         console.log(`Environment: ${env.name}${env.active ? ' (active)' : ''}`);
         outputListResult(rows, 'table', ['key', 'value']);
       }
+      container.dispose();
+      process.exit(0);
 
     } else if (subcommand === 'set') {
       const envName = positionals[0];
@@ -134,6 +138,8 @@ Options:
       shared.environments[envName].variables[key] = value;
       container.environmentConfig.saveSharedConfig(shared);
       process.stdout.write(`${JSON.stringify({ set: true, environment: envName, key, value }, null, 2)}\n`);
+      container.dispose();
+      process.exit(0);
 
     } else if (subcommand === 'unset') {
       const envName = positionals[0];
@@ -155,13 +161,17 @@ Options:
       process.stdout.write(
         `${JSON.stringify({ unset: wasPresent, environment: envName, key }, null, 2)}\n`
       );
+      container.dispose();
+      process.exit(0);
 
     } else {
       console.error(`Unknown env subcommand: "${subcommand}". Valid: list, get, set, unset`);
+      container.dispose();
       process.exit(2);
     }
-  } finally {
-    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+  } catch (err) {
+    try { container.dispose(); } catch { /* best-effort */ }
+    throw err;
   }
 }
 
@@ -257,7 +267,8 @@ export async function handleEnvImport(args: string[]): Promise<void> {
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     }
   } finally {
-    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+    container.dispose();
+    process.exit(0);
   }
 }
 

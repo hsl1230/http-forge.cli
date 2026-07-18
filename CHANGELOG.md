@@ -5,6 +5,19 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## 0.2.25 - 2026-07-17
+
+### Changed
+
+- **Removed dead `parseShellKind()` function from `launch.ts`** — the function detected the user's shell but its result was only used on Unix where the `.sh` script declares `#!/bin/bash`. The script is now spawned directly so the OS uses the shebang. On Windows all three environments (cmd, PowerShell, Git Bash) use the same `cmd.exe /c` path because `process.platform === 'win32'` is determined by the Node.js binary, not the terminal.
+
+### Fixed
+
+- **`http-forge launch` now works on Windows in cmd, PowerShell, and Git Bash** — the `spawn` call for the `.bat` launcher script now uses `windowsVerbatimArguments: true` and wraps the command in outer quotes to satisfy `cmd.exe /c` quoting semantics. Previously Node.js escaped the inner quotes, causing `"C:\...\http-forge.bat"` to be treated as a literal command name rather than a quoted path.
+
+- **CLI commands now exit cleanly after output** — read-only and terminal commands (`list`, `env list/get`, `copy-as`, etc.) previously printed results but left the process running due to open file watchers. All command handlers now dispose the service container and call an explicit `process.exit()` on completion.
+
 ## 0.2.20 - 2026-07-13
 
 ### Changed

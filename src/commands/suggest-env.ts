@@ -186,7 +186,8 @@ export async function handleSuggestEnv(args: string[]): Promise<void> {
       console.log(`\n${total} replacement(s) made in ${suggestions.length} variable(s).`);
     }
   } finally {
-    try { (container as any).dispose?.(); } catch { /* best-effort */ }
+    container.dispose();
+    process.exit(0);
   }
 }
 
