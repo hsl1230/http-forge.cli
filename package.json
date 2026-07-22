@@ -1,6 +1,6 @@
 {
   "name": "@http-forge/cli",
-  "version": "0.2.25",
+  "version": "0.2.30",
   "description": "Standalone HTTP Forge launcher and Postman alternative for UI mode, API testing, CI/CD, and MCP server automation",
   "main": "dist/index.js",
   "bin": {
@@ -57,7 +57,7 @@
   },
   "dependencies": {
     "@http-forge/codegen": "^0.1.7",
-    "@http-forge/core": "^0.6.27"
+    "@http-forge/core": "^0.6.30"
   },
   "optionalDependencies": {
     "@aws-sdk/client-secrets-manager": "^3.0.0",
