@@ -37,7 +37,7 @@ Marketplace: [HTTP Forge](https://marketplace.visualstudio.com/items?itemName=he
 - Launch HTTP Forge in standalone UI mode with one command.
 - Run API tests in CI/CD without a GUI.
 - Use the same HTTP Forge workspace in editor and terminal.
-- Generate JUnit and HTML reports for team visibility.
+- Generate JUnit, HTML, and AI-friendly Markdown run summaries for team visibility.
 - Manage MCP server lifecycle for agent workflows.
 - Work with OpenAPI, environments, and Postman-style scripts in one toolchain.
 
@@ -175,6 +175,8 @@ http-forge run request "Get Users" --collection "my-api" --env dev
 # Folder
 http-forge run folder "Auth/Login" --collection "my-api" --env dev
 ```
+
+If a folder name itself contains `/`, keep folder levels separated with ` / ` in the CLI input. Example: `http-forge run folder "agl-page-composition / TRAY/EPG / AVS5-5304 - TRAY/EPG" --collection "reg-agl-sq5"`.
 
 ## CI/CD Example
 

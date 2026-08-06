@@ -11,12 +11,12 @@
 
 import {
     applyEnvSuggestionsToItems,
+    createEnvAiProvider,
     createNodeContainer,
     detectEnvSuggestions,
     resolveCollectionRef,
     scanCollectionForEnvVarsWithAi,
 } from '@http-forge/core';
-import { createCliAiProvider } from '../ai/providers';
 import { outputListResult } from '../output/format';
 
 export async function handleSuggestEnv(args: string[]): Promise<void> {
@@ -69,7 +69,7 @@ export async function handleSuggestEnv(args: string[]): Promise<void> {
     // -- Detection (delegated to @http-forge/core) -------------------------
     let suggestions;
     if (aiMode) {
-      const provider = createCliAiProvider();
+      const provider = createEnvAiProvider();
       if (!provider) {
         console.error('Error: --ai requires OPENAI_API_KEY or ANTHROPIC_API_KEY to be set.');
         process.exit(1);

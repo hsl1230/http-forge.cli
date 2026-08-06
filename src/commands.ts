@@ -10,6 +10,9 @@
  */
 
 export { handleEnv, handleEnvImport } from './commands/env';
+export { handleDiscover } from './commands/discover';
+export { handleGenerateSuite } from './commands/generate-suite';
+export { handleDrift } from './commands/drift';
 export { handleGenerate } from './commands/generate';
 export { handleGenerateCollection } from './commands/generate-collection';
 export { handleLaunch } from './commands/launch';

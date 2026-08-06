@@ -5,6 +5,13 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.31 - 2026-07-23
+
+### Changed
+
+- **`@http-forge/core` upgraded to ^0.6.31** — inherits dynamic HTML report filenames, JUnit `<properties>` output, JUnit regeneration from persisted artifacts, AI-friendly `run-summary.md` generation, and environment-resolved request/proxy configuration.
+- **`run folder` documentation clarified** — CLI docs now explain how to target folders whose names contain `/`: keep folder levels separated with ` / ` in the user-facing path, for example `agl-page-composition / TRAY/EPG / AVS5-5304 - TRAY/EPG`.
+
 
 ## 0.2.26 - 2026-07-21
 

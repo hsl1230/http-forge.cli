@@ -12,10 +12,13 @@
 
 import {
   handleCopyAs,
+  handleDiscover,
+  handleDrift,
   handleEnv,
   handleEnvImport,
   handleGenerate,
   handleGenerateCollection,
+  handleGenerateSuite,
   handleLaunch,
   handleList,
   handleMcpGroup,
@@ -116,6 +119,30 @@ export async function main(): Promise<void> {
           break;
         }
         await handleSuggestEnv(subArgs);
+        break;
+
+      case 'discover':
+        if (isHelpFlag(subArgs[0])) {
+          await handleDiscover(['--help']);
+          break;
+        }
+        await handleDiscover(subArgs);
+        break;
+
+      case 'generate-suite':
+        if (isHelpFlag(subArgs[0])) {
+          await handleGenerateSuite(['--help']);
+          break;
+        }
+        await handleGenerateSuite(subArgs);
+        break;
+
+      case 'drift':
+        if (isHelpFlag(subArgs[0])) {
+          await handleDrift(['--help']);
+          break;
+        }
+        await handleDrift(subArgs);
         break;
 
       case 'schedule':
@@ -286,6 +313,29 @@ COMMANDS:
       --ai                Use AI detection (needs OPENAI_API_KEY or ANTHROPIC_API_KEY)
       --min-occurrences   Only suggest values in at least N requests (default: 1)
       --workspace <path>  Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --output <fmt>      Output format: json or table (default: json)
+
+  discover                Scan a backend project from source code and list endpoints
+    Options:
+      --path <path>       Project root to scan (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --framework <name>  Restrict to one framework (express, nestjs, fastify,
+                          lambda, spring, fastapi; default: all)
+      --output <fmt>      Output format: json or table (default: json)
+
+  generate-suite          Generate a runnable test suite from discovered endpoints
+    Options:
+      --path <path>       Project root to scan (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --collection <ref>  Target collection (id or name; default: first collection)
+      --base-url <url>    Base URL to prefix discovered paths
+      --dry-run           Preview without creating requests or saving
+      --assert-body-schema Also assert JSON array response bodies
+      --output <fmt>      Output format: json or table (default: json)
+
+  drift                   Check whether a project has drifted since its discovery index
+    Options:
+      --path <path>       Project root to check (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --stored-git-hash <sha>  Git HEAD from a prior scan (enables git-based drift)
+      --stored-scanned-at <iso> Scan time from a prior scan (mtime-based drift)
       --output <fmt>      Output format: json or table (default: json)
 
   schedule                Generate a CI schedule config for running a test suite

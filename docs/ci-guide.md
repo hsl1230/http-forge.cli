@@ -363,6 +363,8 @@ http-forge run folder \
   --exit-code
 ```
 
+If a folder name itself contains `/`, separate folder levels with ` / ` in CI input. Example: `--folder "agl-page-composition / TRAY/EPG / AVS5-5304 - TRAY/EPG"`.
+
 Using the composite action:
 
 ```yaml

@@ -11,13 +11,13 @@
 import {
   ServiceIdentifiers,
   countRequests,
+  createEnvAiProvider,
   createNodeContainer,
   enhanceCollection,
   parseCurlCommand,
   type IOpenApiImporter,
 } from '@http-forge/core';
 import * as path from 'path';
-import { createCliAiProvider } from '../ai/providers';
 import { outputResult } from '../output/format';
 
 export async function handleGenerateCollection(args: string[]): Promise<void> {
@@ -266,7 +266,7 @@ async function runAiEnhancement(
   container: ReturnType<typeof import('@http-forge/core').createNodeContainer>,
   outputFormat: 'json' | 'table'
 ): Promise<void> {
-  const provider = createCliAiProvider();
+  const provider = createEnvAiProvider();
   if (!provider) {
     process.stderr.write(
       'Warning: --ai requires OPENAI_API_KEY or ANTHROPIC_API_KEY in the environment.\n'

@@ -145,6 +145,8 @@ http-forge run request "Login" --collection "Auth" --env dev
 http-forge run folder "Auth/Login" --collection "Auth" --env dev
 ```
 
+If a folder name itself contains `/`, separate folder levels with ` / ` in the user-facing path. Example: `http-forge run folder "agl-page-composition / TRAY/EPG / AVS5-5304 - TRAY/EPG" --collection "reg-agl-sq5" --env dev`.
+
 `--env` is a short form of `--environment`. Both default to `$HTTP_FORGE_ENV` when not set.
 
 #### Path-based dispatch
@@ -234,7 +236,7 @@ http-forge run folder "Auth/Login" \
 ```
 
 **Required:**
-- First positional arg — Folder path (slash-separated, e.g. `"Auth/Login"`)
+- First positional arg — Folder path (slash-separated, e.g. `"Auth/Login"`; if a folder name itself contains `/`, use ` / ` between folder levels, e.g. `"agl-page-composition / TRAY/EPG / AVS5-5304 - TRAY/EPG"`)
 - `--collection <ref>` — Collection id, slug, or display name
 
 **Optional:**
