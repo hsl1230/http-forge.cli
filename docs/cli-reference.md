@@ -11,6 +11,10 @@ Command-line interface for executing HTTP Forge collections, test suites, and MC
   - [run](#run-command)
   - [generate](#generate)
   - [suggest-env](#suggest-env)
+  - [discover](#discover)
+  - [generate-suite](#generate-suite)
+  - [generate-workflow](#generate-workflow)
+  - [drift](#drift)
   - [schedule](#schedule)
   - [mcp](#5-manage-mcp-server)
   - [copy-as](#6-copy-as-code-snippet)
@@ -350,6 +354,107 @@ http-forge suggest-env --collection my-api --min-occurrences 3 --output table
   Requires `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Ignores `--min-occurrences` (AI determines relevance).
 - `--min-occurrences <n>` — Only suggest values appearing in ≥ N request locations (default: 1; heuristic mode only)
 - `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--output json|table` — Output format (default: `json`)
+
+---
+
+### `discover`
+
+Scan a backend project **from source code** and list the API endpoints it exposes (methods, paths, params, bodies, auth) with file:line provenance. Supports six frameworks: Express, NestJS, Fastify, Lambda, Spring, FastAPI.
+
+```bash
+# Scan the current directory (or $HTTP_FORGE_WORKSPACE)
+http-forge discover
+
+# Scan a specific project root
+http-forge discover --path ./backend
+
+# Restrict to one framework
+http-forge discover --path ./backend --framework spring
+
+# Human-readable table output
+http-forge discover --path ./backend --output table
+```
+
+**Options:**
+- `--path <path>` — Project root to scan (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--framework <name>` — Restrict to one framework: `express`, `nestjs`, `fastify`, `lambda`, `spring`, `fastapi` (default: all)
+- `--output json|table` — Output format (default: `json`)
+
+---
+
+### `generate-suite`
+
+Scan a backend project, create a request per discovered endpoint in a target collection, and generate a **runnable test suite** (`.suite.json`) — one request node per endpoint, each asserting the discovered status code. Generated suites are tagged `ai_generated: true` + `derived_from: <endpointId>` (the Phase 2b drift hook).
+
+```bash
+# Preview the suite without creating anything
+http-forge generate-suite --path ./backend --collection "My API" --dry-run
+
+# Create requests + generate the suite
+http-forge generate-suite --path ./backend --collection "My API"
+
+# Point the requests at a live base URL, then execute the suite
+http-forge generate-suite --path ./backend --collection "My API" \
+  --base-url https://api.example.com --run
+
+# Also write the .flow.js artifact (http-forge.flow runtime)
+http-forge generate-suite --path ./backend --collection "My API" --flow-out ./flows/backend.flow.js
+```
+
+**Options:**
+- `--path <path>` — Project root to scan (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--collection <ref>` — Target collection (id or name; default: first collection)
+- `--base-url <url>` — Base URL to prefix discovered paths (e.g. `https://api.example.com`)
+- `--dry-run` — Preview the generated suite without creating requests or saving
+- `--assert-body-schema` — Also assert JSON array response bodies
+- `--run` — Execute the generated suite against the configured environment after saving
+- `--flow-out <path>` — Write the generated `.flow.js` artifact to this file
+- `--output json|table` — Output format (default: `json`)
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+
+---
+
+### `generate-workflow`
+
+Scan a backend project and generate a test suite whose **flow graph encodes the discovered workflow chains** (L3): auth chains (token-producer → protected endpoints) and CRUD chains (create → id-scoped operations), emitted as `request` + `if` nodes.
+
+```bash
+# Preview the workflow suite
+http-forge generate-workflow --path ./backend --collection "My API" --dry-run
+
+# Create requests + generate the workflow suite
+http-forge generate-workflow --path ./backend --collection "My API"
+```
+
+**Options:**
+- `--path <path>` — Project root to scan (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--collection <ref>` — Target collection (id or name; default: first collection)
+- `--dry-run` — Preview without creating requests or saving
+- `--output json|table` — Output format (default: `json`)
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+
+---
+
+### `drift`
+
+Check whether a backend project has drifted since its discovery index was built. In git work trees, compares the git HEAD hash; otherwise degrades to source-file mtime vs the stored scan time.
+
+```bash
+# Show current freshness (git HEAD, newest source file)
+http-forge drift --path ./backend
+
+# Compare against a stored git hash from a prior scan
+http-forge drift --path ./backend --stored-git-hash abc1234...
+
+# Table output
+http-forge drift --path ./backend --output table
+```
+
+**Options:**
+- `--path <path>` — Project root to check (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--stored-git-hash <sha>` — Git HEAD hash from a prior scan (enables git-based drift detection)
+- `--stored-scanned-at <iso>` — ScannedAt timestamp from a prior scan (mtime-based drift)
 - `--output json|table` — Output format (default: `json`)
 
 ---

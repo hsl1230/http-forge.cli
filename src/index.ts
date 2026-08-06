@@ -19,6 +19,7 @@ import {
   handleGenerate,
   handleGenerateCollection,
   handleGenerateSuite,
+  handleGenerateWorkflow,
   handleLaunch,
   handleList,
   handleMcpGroup,
@@ -135,6 +136,14 @@ export async function main(): Promise<void> {
           break;
         }
         await handleGenerateSuite(subArgs);
+        break;
+
+      case 'generate-workflow':
+        if (isHelpFlag(subArgs[0])) {
+          await handleGenerateWorkflow(['--help']);
+          break;
+        }
+        await handleGenerateWorkflow(subArgs);
         break;
 
       case 'drift':
@@ -329,6 +338,15 @@ COMMANDS:
       --base-url <url>    Base URL to prefix discovered paths
       --dry-run           Preview without creating requests or saving
       --assert-body-schema Also assert JSON array response bodies
+      --run               Execute the generated suite after saving
+      --flow-out <path>   Write the generated .flow.js artifact to this file
+      --output <fmt>      Output format: json or table (default: json)
+
+  generate-workflow       Generate a workflow-chain test suite from discovered endpoints
+    Options:
+      --path <path>       Project root to scan (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --collection <ref>  Target collection (id or name; default: first collection)
+      --dry-run           Preview without creating requests or saving
       --output <fmt>      Output format: json or table (default: json)
 
   drift                   Check whether a project has drifted since its discovery index

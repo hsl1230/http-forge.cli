@@ -20,6 +20,7 @@ import {
   NestDiscoveryProvider,
   SpringDiscoveryProvider,
   createNodeContainer,
+  generateFlowFromEndpoints,
   generateSuiteFromEndpoints,
   runSuite,
 } from '@http-forge/core';
@@ -37,6 +38,7 @@ export async function handleGenerateSuite(args: string[]): Promise<void> {
   let dryRun = false;
   let assertBodySchema = false;
   let runAfter = false;
+  let flowOut: string | undefined;
   let outputFormat: 'json' | 'table' = 'json';
   let workspace = process.env.HTTP_FORGE_WORKSPACE ?? process.cwd();
 
@@ -48,6 +50,7 @@ export async function handleGenerateSuite(args: string[]): Promise<void> {
     else if (arg === '--dry-run') dryRun = true;
     else if (arg === '--assert-body-schema') assertBodySchema = true;
     else if (arg === '--run') runAfter = true;
+    else if (arg === '--flow-out' && i + 1 < args.length) flowOut = args[++i];
     else if (arg === '--json') outputFormat = 'json';
     else if (arg === '--output' && i + 1 < args.length) outputFormat = args[++i] === 'table' ? 'table' : 'json';
     else if (arg === '--workspace' && i + 1 < args.length) workspace = args[++i];
@@ -99,6 +102,15 @@ export async function handleGenerateSuite(args: string[]): Promise<void> {
         const query: KeyValueEntry[] = (ep.params ?? [])
           .filter((p) => p.location === 'query')
           .map((p) => ({ key: p.name, value: p.example ?? '', enabled: true }));
+        const params: Record<string, string> = {};
+        for (const p of ep.params ?? []) {
+          if (p.location === 'path') {
+            params[p.name] = p.type === 'integer' ? '1' : p.type === 'number' ? '1.0' : p.example ?? 'test';
+          }
+        }
+        if (ep.auth?.type === 'jwt' || ep.auth?.type === 'bearer') {
+          headers.push({ key: 'Authorization', value: 'Bearer {{TOKEN}}', enabled: true });
+        }
         const opts = {
           collectionId: col.id,
           name: ep.source?.symbolName || `${ep.method || 'GET'} ${ep.pathExpression}`,
@@ -106,6 +118,7 @@ export async function handleGenerateSuite(args: string[]): Promise<void> {
           url,
           headers,
           query,
+          params,
           body: ep.requestBody?.type === 'json'
             ? { type: 'raw' as const, format: 'json' as const, content: '{}' }
             : undefined,
@@ -130,6 +143,17 @@ export async function handleGenerateSuite(args: string[]): Promise<void> {
       assertBodySchema,
     });
 
+    const flowSource = generateFlowFromEndpoints(endpoints, {
+      requestPathOf: (ep) => ep.source?.symbolName || `${ep.method || 'GET'} ${ep.pathExpression}`,
+      name: `${suite.name} flow`,
+    });
+
+    if (flowOut) {
+      const fs = require('fs');
+      fs.mkdirSync(require('path').dirname(flowOut), { recursive: true });
+      fs.writeFileSync(flowOut, flowSource, 'utf-8');
+    }
+
     if (!dryRun) {
       await container.testSuite.updateSuite(suite);
     }
@@ -153,7 +177,7 @@ export async function handleGenerateSuite(args: string[]): Promise<void> {
             derived,
             endpointCount: suite.nodes.length,
             requestsCreated: dryRun ? undefined : created,
-            flowSource: undefined,
+            flowSource,
             run: runAfter && !dryRun ? runResult : undefined,
           },
           null,
@@ -199,6 +223,7 @@ Options:
   --dry-run               Preview the generated suite without creating requests or saving
   --assert-body-schema    Also assert JSON array response bodies
   --run                   Execute the generated suite against the configured environment after saving
+  --flow-out <path>       Write the generated .flow.js artifact to this file
   --output json|table     Output format (default: json)
   --json                  Short for --output json
   --workspace <path>      Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
