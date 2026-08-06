@@ -305,12 +305,13 @@ COMMANDS:
 
   import <target>         Import collections and environment files
     Targets:
-      collection          Import a collection from curl, Postman, or OpenAPI
+      collection          Import a collection from curl, Postman, OpenAPI, or HAR
       env                 Import a Postman environment JSON file
     collection options:
       --curl <cmd>        curl command string (quote the whole thing)
       --postman <file>    Postman Collection v2.x JSON file
       --openapi <file>    OpenAPI 3.0 spec file (.json / .yaml / .yml)
+      --har <file>        HAR 1.2 archive file (.har)
       --name <name>       Collection name (default: derived from source)
       --env <name>        write detected vars (curl) or create env (openapi)
       --environment <name> Same as --env (long form)
@@ -446,6 +447,7 @@ EXAMPLES:
   http-forge import collection --curl "curl -X POST -H 'Authorization: Bearer sk-abc' https://api.example.com/v1/users -d '{\"name\":\"Alice\"}'" --env dev
   http-forge import collection --postman ./MyCollection.postman_collection.json
   http-forge import collection --openapi ./openapi.yaml --name "Payments API" --create-envs --env staging
+  http-forge import collection --har ./capture.har --name "Session Traces"
   http-forge suggest-env --collection my-api --output table
   http-forge suggest-env --collection my-api --apply --env staging
   http-forge schedule --suite smoke-tests --env staging

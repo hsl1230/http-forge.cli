@@ -15,7 +15,9 @@ import {
   createNodeContainer,
   enhanceCollection,
   parseCurlCommand,
+  parseHar,
   type IOpenApiImporter,
+  type UnifiedRequest,
 } from '@http-forge/core';
 import * as path from 'path';
 import { outputResult } from '../output/format';
@@ -29,6 +31,7 @@ export async function handleGenerateCollection(args: string[]): Promise<void> {
   let curlCommand: string | undefined;
   let postmanFile: string | undefined;
   let openapiFile: string | undefined;
+  let harFile: string | undefined;
   let collectionName: string | undefined;
   let envName: string | undefined;
   let createEnvs = false;
@@ -44,6 +47,8 @@ export async function handleGenerateCollection(args: string[]): Promise<void> {
       postmanFile = args[++i];
     } else if ((arg === '--openapi' || arg === '--openapi-spec') && i + 1 < args.length) {
       openapiFile = args[++i];
+    } else if (arg === '--har' && i + 1 < args.length) {
+      harFile = args[++i];
     } else if (arg === '--name' && i + 1 < args.length) {
       collectionName = args[++i];
     } else if ((arg === '--env' || arg === '--environment') && i + 1 < args.length) {
@@ -61,14 +66,14 @@ export async function handleGenerateCollection(args: string[]): Promise<void> {
     }
   }
 
-  const sourceCount = [curlCommand, postmanFile, openapiFile].filter(Boolean).length;
+  const sourceCount = [curlCommand, postmanFile, openapiFile, harFile].filter(Boolean).length;
   if (sourceCount === 0) {
-    console.error('Error: one of --curl, --postman, or --openapi is required');
+    console.error('Error: one of --curl, --postman, --openapi, or --har is required');
     printUsage();
     process.exit(2);
   }
   if (sourceCount > 1) {
-    console.error('Error: --curl, --postman, and --openapi are mutually exclusive');
+    console.error('Error: --curl, --postman, --openapi, and --har are mutually exclusive');
     process.exit(2);
   }
 
@@ -174,6 +179,40 @@ export async function handleGenerateCollection(args: string[]): Promise<void> {
       }
     }
 
+    // ── HAR mode ───────────────────────────────────────────────────────────
+    else if (harFile !== undefined) {
+      const filePath = path.resolve(process.cwd(), harFile);
+      const fs = await import('fs');
+      const raw = await fs.promises.readFile(filePath, 'utf-8');
+
+      let collection;
+      try {
+        collection = parseHar(raw, { skipFailed: false }).collection;
+      } catch (err) {
+        console.error(`Error parsing HAR file: ${(err as Error).message}`);
+        process.exit(1);
+      }
+
+      const name = collectionName ?? 'Imported from HAR';
+      const created = await container.collection.createCollection(name);
+
+      await hydrateCollection(created, collection.items, container);
+
+      const requestCount = countRequests(created.items);
+
+      if (aiEnhance) await runAiEnhancement(created, container, outputFormat);
+
+      if (outputFormat === 'table') {
+        console.log(`\nImported HAR archive: ${created.name} (${created.id})`);
+        console.log(`Requests: ${requestCount}`);
+      } else {
+        outputResult({
+          source: 'har',
+          collection: { id: created.id, name: created.name, requests: requestCount },
+        }, 'json');
+      }
+    }
+
     // ── OpenAPI mode ───────────────────────────────────────────────────────
     else if (openapiFile !== undefined) {
       const filePath = path.resolve(process.cwd(), openapiFile);
@@ -215,12 +254,13 @@ function printUsage(): void {
 Usage: http-forge import collection <source> [options]
 
 Create an HTTP Forge collection from a curl command, a Postman collection file,
-or an OpenAPI spec.
+an OpenAPI spec, or a HAR archive.
 
 Sources (exactly one required):
   --curl <cmd>            curl command to parse (quote the whole string)
   --postman <file>        Postman Collection v2.x JSON file
   --openapi <file>        OpenAPI 3.0 spec file (.json, .yaml, .yml)
+  --har <file>            HAR 1.2 archive file (.har)
 
 Options:
   --name <name>           Collection name
@@ -256,11 +296,13 @@ Examples:
   # From OpenAPI spec, creating an environment from server URLs
   http-forge import collection --openapi ./openapi.yaml --name "Payments API" --create-envs --env staging --ai
 
+  # From a HAR archive (browser/network capture)
+  http-forge import collection --har ./capture.har --name "Session Traces"
+
 `);
 }
 
 // ─── AI helper ────────────────────────────────────────────────────────────────
-
 async function runAiEnhancement(
   collection: import('@http-forge/core').Collection,
   container: ReturnType<typeof import('@http-forge/core').createNodeContainer>,
@@ -278,4 +320,51 @@ async function runAiEnhancement(
     if (outputFormat === 'table') process.stderr.write(`  ${msg}\n`);
   });
   if (outputFormat === 'table') process.stderr.write('AI enhancement complete.\n');
+}
+
+// ─── HAR helper ───────────────────────────────────────────────────────────────
+
+/**
+ * Recreate a parsed HAR collection (folders by hostname + requests) using the
+ * collection service so it gets persisted and id-tracked like any other import.
+ */
+async function hydrateCollection(
+  collection: import('@http-forge/core').Collection,
+  items: Array<import('@http-forge/core').UnifiedFolder | UnifiedRequest>,
+  container: ReturnType<typeof import('@http-forge/core').createNodeContainer>
+): Promise<void> {
+  for (const item of items) {
+    if (item.type === 'folder') {
+      const folder = await container.collection.createFolder({
+        collectionId: collection.id,
+        name: item.name,
+      });
+      for (const child of item.items ?? []) {
+        if (child.type === 'request') {
+          await createHarRequest(container, collection.id, folder.id, child);
+        }
+      }
+    } else if (item.type === 'request') {
+      await createHarRequest(container, collection.id, undefined, item);
+    }
+  }
+}
+
+async function createHarRequest(
+  container: ReturnType<typeof import('@http-forge/core').createNodeContainer>,
+  collectionId: string,
+  parentId: string | undefined,
+  req: UnifiedRequest
+): Promise<void> {
+  const options: any = {
+    collectionId,
+    parentId,
+    name: req.name,
+    method: req.method,
+    url: req.url,
+  };
+  if (req.headers?.length) options.headers = req.headers;
+  if (req.query?.length) options.query = req.query;
+  if (req.body) options.body = req.body;
+  await container.collection.createRequest(options);
 }
