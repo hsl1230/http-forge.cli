@@ -23,7 +23,9 @@ import {
   handleLaunch,
   handleList,
   handleMcpGroup,
+  handleReleaseNotes,
   handleRunGroup,
+  handleReview,
   handleSchedule,
   handleSuggestEnv
 } from './commands';
@@ -152,6 +154,22 @@ export async function main(): Promise<void> {
           break;
         }
         await handleDrift(subArgs);
+        break;
+
+      case 'review':
+        if (isHelpFlag(subArgs[0])) {
+          await handleReview(['--help']);
+          break;
+        }
+        await handleReview(subArgs);
+        break;
+
+      case 'release-notes':
+        if (isHelpFlag(subArgs[0])) {
+          await handleReleaseNotes(['--help']);
+          break;
+        }
+        await handleReleaseNotes(subArgs);
         break;
 
       case 'schedule':
@@ -355,6 +373,22 @@ COMMANDS:
       --stored-git-hash <sha>  Git HEAD from a prior scan (enables git-based drift)
       --stored-scanned-at <iso> Scan time from a prior scan (mtime-based drift)
       --output <fmt>      Output format: json or table (default: json)
+
+  review                  Phase 3 review gate: run deterministic rules over a suite run
+    Options:
+      --run-results <file>     JSON with run results ({ allResults } or a bare array)
+      --suite <id|name>        Optional suite context for the review
+      --severity <level>       CI gate bar: error | warn | info (default: error)
+      --exit-code              Exit 1 when findings at/above --severity exist
+      --slow-response-ms <n>   Slow-response threshold in ms (default: 2000)
+      --output <fmt>           Output format: json | table | markdown (default: json)
+
+  release-notes            Layer 6 docs byproduct: derive release notes from git history
+    Options:
+      --path <root>       Project root (default: cwd)
+      --from <ref>        Lower bound (exclusive); default = beginning of history
+      --to <ref>          Upper bound (inclusive); default = HEAD
+      --output <fmt>      Output format: markdown | json (default: markdown)
 
   schedule                Generate a CI schedule config for running a test suite
     Required:

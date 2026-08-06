@@ -14,10 +14,12 @@ export { handleDiscover } from './commands/discover';
 export { handleGenerateSuite } from './commands/generate-suite';
 export { handleGenerateWorkflow } from './commands/generate-workflow';
 export { handleDrift } from './commands/drift';
+export { handleReview } from './commands/review';
 export { handleGenerate } from './commands/generate';
 export { handleGenerateCollection } from './commands/generate-collection';
 export { handleLaunch } from './commands/launch';
 export { handleList } from './commands/list';
+export { handleReleaseNotes } from './commands/release-notes';
 export { handleMcpGroup, handleMcpServer } from './commands/mcp';
 export {
     handleCopyAs,
