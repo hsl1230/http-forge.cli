@@ -11,6 +11,7 @@
 
 export { handleEnv, handleEnvImport } from './commands/env';
 export { handleDiscover } from './commands/discover';
+export { handleArchitect } from './commands/architect';
 export { handleGenerateSuite } from './commands/generate-suite';
 export { handleGenerateWorkflow } from './commands/generate-workflow';
 export { handleDrift } from './commands/drift';

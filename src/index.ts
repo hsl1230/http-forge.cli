@@ -11,6 +11,7 @@
  */
 
 import {
+  handleArchitect,
   handleCopyAs,
   handleDiscover,
   handleDrift,
@@ -122,6 +123,14 @@ export async function main(): Promise<void> {
           break;
         }
         await handleSuggestEnv(subArgs);
+        break;
+
+      case 'architect':
+        if (isHelpFlag(subArgs[0])) {
+          await handleArchitect(['--help']);
+          break;
+        }
+        await handleArchitect(subArgs);
         break;
 
       case 'discover':
@@ -342,6 +351,20 @@ COMMANDS:
       --min-occurrences   Only suggest values in at least N requests (default: 1)
       --workspace <path>  Workspace folder (default: $HTTP_FORGE_WORKSPACE or cwd)
       --output <fmt>      Output format: json or table (default: json)
+
+  architect               Design a complete API from a natural-language intent
+    Options:
+      --name <name>       Collection/API name (default: from the designed spec)
+      --base-url <url>    Base URL for the designed API (default: http://localhost:3000)
+      --env <name>        Environment name to create with the server URL (optional)
+      --apply             Persist the suite and write byproduct files
+      --flow-out <path>   Write the generated .flow.js artifact (requires --apply)
+      --docs-out <path>   Write the generated markdown docs (requires --apply)
+      --openapi-out <path> Write the round-trip OpenAPI document (requires --apply)
+      --output <fmt>      Output format: json or table (default: json)
+    Examples:
+      http-forge architect "I need a shopping cart"
+      http-forge architect "a todo list" --apply --flow-out ./todo.flow.js --docs-out ./todo.md
 
   discover                Scan a backend project from source code and list endpoints
     Options:

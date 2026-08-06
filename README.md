@@ -115,9 +115,26 @@ npm run build
 | `http-forge env ...` | Get/set/unset environment variables |
 | `http-forge import ...` | Import collections and Postman environment files |
 | `http-forge generate ...` | Generate typed TypeScript API clients from collections |
+| `http-forge architect ...` | Design a complete REST API from a natural-language intent |
 | `http-forge suggest-env ...` | Detect hardcoded values and suggest env vars |
 | `http-forge schedule ...` | Generate scheduled CI workflow/cron config |
 | `http-forge copy-as ...` | Export request as curl/fetch/python snippet |
+
+## Design an API from a Natural-Language Intent
+
+`http-forge architect` designs a complete REST API from a plain-English intent — endpoints, DTOs, and auth — then generates the full test suite, runnable flow, docs, and a round-trip OpenAPI export in one flow:
+
+```bash
+# Design an API (persists the collection; prints the reviewable package)
+http-forge architect "I need a shopping cart"
+
+# Approve: persist the suite and write the flow/docs/OpenAPI byproducts
+http-forge architect "a todo list" --name "Todo API" \
+  --base-url https://api.todo.dev --apply \
+  --flow-out ./todo.flow.js --docs-out ./todo.md --openapi-out ./todo.openapi.json
+```
+
+Requires an AI provider (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`). All generated artifacts are tagged `ai_generated: true` so the Phase 2b drift machinery keeps them honest when your code changes.
 
 ## Generate Typed Clients
 

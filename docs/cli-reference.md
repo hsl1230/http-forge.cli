@@ -12,6 +12,7 @@ Command-line interface for executing HTTP Forge collections, test suites, and MC
   - [generate](#generate)
   - [suggest-env](#suggest-env)
   - [discover](#discover)
+  - [architect](#architect)
   - [generate-suite](#generate-suite)
   - [generate-workflow](#generate-workflow)
   - [drift](#drift)
@@ -380,6 +381,35 @@ http-forge discover --path ./backend --output table
 - `--path <path>` — Project root to scan (default: `$HTTP_FORGE_WORKSPACE` or cwd)
 - `--framework <name>` — Restrict to one framework: `express`, `nestjs`, `fastify`, `lambda`, `spring`, `fastapi` (default: all)
 - `--output json|table` — Output format (default: `json`)
+
+---
+
+### `architect`
+
+Design a complete REST API **from a natural-language intent** (Phase 4 / Layer 8). One flow produces a reviewable package: the AI designs an OpenAPI 3.0 spec (endpoints + DTO schemas + auth), it is imported as a new collection, and the byproducts are generated — a test suite (one node per endpoint asserting the designed status code), a runnable `.flow.js`, discovered workflow chains (auth/CRUD), markdown docs, and a round-trip OpenAPI export. Everything is tagged `ai_generated: true`.
+
+By default only the collection is persisted (the design artifact); the suite/flow/docs/OpenAPI are returned for review. Pass `--apply` to also persist the suite and write the byproduct files. Requires an AI provider (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`).
+
+```bash
+# Design an API, print the reviewable package (persists the collection only)
+http-forge architect "I need a shopping cart"
+
+# Design + approve: persist the suite and write flow/docs/OpenAPI byproducts
+http-forge architect "a todo list" --name "Todo API" \
+  --base-url https://api.todo.dev --apply \
+  --flow-out ./todo.flow.js --docs-out ./todo.md --openapi-out ./todo.openapi.json
+```
+
+**Options:**
+- `--name <name>` — Collection/API name (default: derived from the designed spec)
+- `--base-url <url>` — Base URL for the designed API (default: `http://localhost:3000`)
+- `--env <name>` — Environment name to create with the server URL (optional)
+- `--apply` — Approve: persist the generated suite and write byproduct files
+- `--flow-out <path>` — Write the `.flow.js` artifact (requires `--apply`)
+- `--docs-out <path>` — Write the markdown docs (requires `--apply`)
+- `--openapi-out <path>` — Write the round-trip OpenAPI document (requires `--apply`)
+- `--output json|table` — Output format (default: `json`)
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
 
 ---
 
