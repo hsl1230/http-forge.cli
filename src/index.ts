@@ -24,6 +24,7 @@ import {
   handleLaunch,
   handleList,
   handleMcpGroup,
+  handleRefreshAgentsMd,
   handleReleaseNotes,
   handleRunGroup,
   handleReview,
@@ -163,6 +164,14 @@ export async function main(): Promise<void> {
           break;
         }
         await handleDrift(subArgs);
+        break;
+
+      case 'refresh-agents-md':
+        if (isHelpFlag(subArgs[0])) {
+          await handleRefreshAgentsMd(['--help']);
+          break;
+        }
+        await handleRefreshAgentsMd(subArgs);
         break;
 
       case 'review':
@@ -396,6 +405,12 @@ COMMANDS:
       --path <path>       Project root to check (default: $HTTP_FORGE_WORKSPACE or cwd)
       --stored-git-hash <sha>  Git HEAD from a prior scan (enables git-based drift)
       --stored-scanned-at <iso> Scan time from a prior scan (mtime-based drift)
+      --output <fmt>      Output format: json or table (default: json)
+
+  refresh-agents-md       Check whether .http-forge/AGENTS.md is stale (dry-run)
+    Options:
+      --workspace <path>  Workspace root (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --apply             Back up to AGENTS.md.bak and write the latest template
       --output <fmt>      Output format: json or table (default: json)
 
   review                  Phase 3 review gate: run deterministic rules over a suite run

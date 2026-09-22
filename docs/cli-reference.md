@@ -491,6 +491,26 @@ http-forge drift --path ./backend --output table
 
 ---
 
+### `refresh-agents-md`
+
+Check whether the versioned `.http-forge/AGENTS.md` AI agent guide is stale. Dry-run by default (nothing is written); pass `--apply` to back up the current guide to `AGENTS.md.bak` and write the latest template. Same refresh as the VS Code `HTTP Forge: Refresh AI Agent Guide` command.
+
+```bash
+# Status only (guides without a version marker report currentVersion 0 / stale)
+http-forge refresh-agents-md --workspace ./my-project
+
+# Back up and rewrite
+http-forge refresh-agents-md --apply
+```
+
+**Options:**
+- `--workspace, -w <path>` — Workspace root (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--apply` — Back up and rewrite the guide (default: status only)
+- `--output json|table` — Output format (default: `json`)
+- `--json` — Short for `--output json`
+
+---
+
 ### `schedule`
 
 Generate a CI schedule configuration for running an HTTP Forge suite automatically. Outputs a **GitHub Actions workflow** file, a **cron entry**, or both — no daemon required.

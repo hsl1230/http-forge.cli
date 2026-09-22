@@ -117,6 +117,7 @@ npm run build
 | `http-forge generate ...` | Generate typed TypeScript API clients from collections |
 | `http-forge architect ...` | Design a complete REST API from a natural-language intent |
 | `http-forge suggest-env ...` | Detect hardcoded values and suggest env vars |
+| `http-forge refresh-agents-md` | Check `.http-forge/AGENTS.md` staleness (`--apply` refreshes with backup) |
 | `http-forge schedule ...` | Generate scheduled CI workflow/cron config |
 | `http-forge copy-as ...` | Export request as curl/fetch/python snippet |
 

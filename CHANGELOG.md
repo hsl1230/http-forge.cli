@@ -5,6 +5,16 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.39 - 2026-09-22
+
+### Added
+
+- **`refresh-agents-md` command** — dry-run staleness check for the versioned `.http-forge/AGENTS.md` guide (`--workspace`, `--output json|table`); `--apply` backs the current guide up to `AGENTS.md.bak` and writes the latest template. Mirrors the VS Code `HTTP Forge: Refresh AI Agent Guide` command.
+
+### Changed
+
+- **`@http-forge/core` upgraded to ^0.6.38** — inherits the versioned AGENTS.md guide module (no runtime behavior change to runs).
+
 ## 0.2.38 - 2026-09-22
 
 ### Changed
