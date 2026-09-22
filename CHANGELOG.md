@@ -5,6 +5,13 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.38 - 2026-09-22
+
+### Changed
+
+- **`@http-forge/core` upgraded to 0.6.36** — inherits suite flow alias-parity docs and the `createTempSuiteFromRequest` performance-loop documentation (no runtime change; CLI `run suite`/`run collection`/`run folder` already supported `pm`/`ctx`/`hf` in `SuiteExecutor`). CLI docs now note the `for`-loop `loopCondition` parity.
+- **Docs: suite flow notes** — `README.md` and `docs/cli-reference.md` clarify that suite `for`/`while`/`if`/`switch` condition expressions and script nodes all accept `pm`/`ctx`/`hf` interchangeably, mirroring the extension fix in 0.16.38.
+
 ## 0.2.31 - 2026-07-23
 
 ### Changed

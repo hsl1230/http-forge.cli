@@ -283,6 +283,8 @@ http-forge run suite smoke-tests \
 - `--exit-code` — Exit 1 when any assertion fails
 - `--output <fmt>` — `json` or `table`
 
+> **Suite flow notes:** `if`/`switch`/`for`/`while` condition expressions and script nodes all accept `pm`/`ctx`/`hf` interchangeably (`hf.variables.get('x')` ≡ `pm.variables.get('x')` ≡ `ctx.variables.get('x')`). The performance helper `http-forge run` respects the same alias parity – e.g. a `for` loop with `hf.variables.get("__i") < 100` behaves identically to `pm`/`ctx`.
+
 ---
 
 ### `collection` import target
