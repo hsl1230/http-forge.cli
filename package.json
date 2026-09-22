@@ -1,6 +1,6 @@
 {
   "name": "@http-forge/cli",
-  "version": "0.2.37",
+  "version": "0.2.38",
   "description": "Standalone HTTP Forge launcher and Postman alternative for UI mode, API testing, CI/CD, and MCP server automation",
   "main": "dist/index.js",
   "bin": {
@@ -56,8 +56,8 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@http-forge/codegen": "^0.1.7",
-    "@http-forge/core": "^0.6.36-beta.3",
+    "@http-forge/codegen": "^0.1.10",
+    "@http-forge/core": "^0.6.36",
     "java-parser": "^0.3.2"
   },
   "optionalDependencies": {
