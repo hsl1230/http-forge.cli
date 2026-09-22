@@ -11,20 +11,21 @@
  * CLI adapter: arg parsing + output formatting only.
  */
 
-import {
-  ApiDiscoveryService,
-  ExpressDiscoveryProvider,
-  FastApiDiscoveryProvider,
-  FastifyDiscoveryProvider,
-  LambdaDiscoveryProvider,
-  NestDiscoveryProvider,
-  SpringDiscoveryProvider,
-  createNodeContainer,
-  generateFlowFromEndpoints,
-  generateSuiteFromEndpoints,
-  runSuite,
-} from '@http-forge/core';
 import type { KeyValueEntry } from '@http-forge/core';
+import {
+    ApiDiscoveryService,
+    DiscoveryConfig,
+    ExpressDiscoveryProvider,
+    FastApiDiscoveryProvider,
+    FastifyDiscoveryProvider,
+    LambdaDiscoveryProvider,
+    NestDiscoveryProvider,
+    SpringDiscoveryProvider,
+    createNodeContainer,
+    generateFlowFromEndpoints,
+    generateSuiteFromEndpoints,
+    runSuite,
+} from '@http-forge/core';
 
 export async function handleGenerateSuite(args: string[]): Promise<void> {
   if (args[0] === '--help' || args[0] === '-h') {
@@ -81,8 +82,9 @@ export async function handleGenerateSuite(args: string[]): Promise<void> {
         new FastApiDiscoveryProvider(),
       ],
     });
+    const discoveryConfig: DiscoveryConfig = container.config.getDiscoveryConfig();
 
-    const result = await service.discover({ workspaceFolder: root });
+    const result = await service.discover({ workspaceFolder: root, ...discoveryConfig });
     if (result.endpoints.length === 0) {
       console.log(`No endpoints discovered in ${root}.`);
       return;

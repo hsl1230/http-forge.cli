@@ -11,13 +11,15 @@
  */
 
 import {
-  ApiDiscoveryService,
-  ExpressDiscoveryProvider,
-  FastApiDiscoveryProvider,
-  FastifyDiscoveryProvider,
-  LambdaDiscoveryProvider,
-  NestDiscoveryProvider,
-  SpringDiscoveryProvider,
+    ApiDiscoveryService,
+    createNodeContainer,
+    DiscoveryConfig,
+    ExpressDiscoveryProvider,
+    FastApiDiscoveryProvider,
+    FastifyDiscoveryProvider,
+    LambdaDiscoveryProvider,
+    NestDiscoveryProvider,
+    SpringDiscoveryProvider,
 } from '@http-forge/core';
 import { outputListResult } from '../output/format';
 
@@ -66,10 +68,12 @@ export async function handleDiscover(args: string[]): Promise<void> {
   }
 
   const service = new ApiDiscoveryService({ providers });
+  const container = createNodeContainer(projectRoot);
+  const discoveryConfig: DiscoveryConfig = container.config.getDiscoveryConfig();
 
   let result;
   try {
-    result = await service.discover({ workspaceFolder: projectRoot });
+    result = await service.discover({ workspaceFolder: projectRoot, ...discoveryConfig });
   } catch (error) {
     console.error(`Error: discovery failed for ${projectRoot}: ${(error as Error).message}`);
     process.exit(1);

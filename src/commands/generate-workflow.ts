@@ -10,16 +10,17 @@
  */
 
 import {
-  ApiDiscoveryService,
-  ExpressDiscoveryProvider,
-  FastApiDiscoveryProvider,
-  FastifyDiscoveryProvider,
-  LambdaDiscoveryProvider,
-  NestDiscoveryProvider,
-  SpringDiscoveryProvider,
-  createNodeContainer,
-  discoverWorkflows,
-  suiteIdFromName,
+    ApiDiscoveryService,
+    DiscoveryConfig,
+    ExpressDiscoveryProvider,
+    FastApiDiscoveryProvider,
+    FastifyDiscoveryProvider,
+    LambdaDiscoveryProvider,
+    NestDiscoveryProvider,
+    SpringDiscoveryProvider,
+    createNodeContainer,
+    discoverWorkflows,
+    suiteIdFromName,
 } from '@http-forge/core';
 
 export async function handleGenerateWorkflow(args: string[]): Promise<void> {
@@ -69,8 +70,9 @@ export async function handleGenerateWorkflow(args: string[]): Promise<void> {
         new FastApiDiscoveryProvider(),
       ],
     });
+    const discoveryConfig: DiscoveryConfig = container.config.getDiscoveryConfig();
 
-    const result = await service.discover({ workspaceFolder: root });
+    const result = await service.discover({ workspaceFolder: root, ...discoveryConfig });
     if (result.endpoints.length === 0) {
       console.log(`No endpoints discovered in ${root}.`);
       return;

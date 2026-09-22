@@ -31,9 +31,24 @@ export interface ParsedArgs {
   output: 'json' | 'table';
 }
 
+function normalizeWorkspacePath(workspacePath: string): string {
+  const resolved = path.resolve(workspacePath);
+  const base = path.basename(resolved);
+
+  if (base === '.http-forge') {
+    return path.dirname(resolved);
+  }
+
+  if (base === 'assets' && path.basename(path.dirname(resolved)) === '.http-forge') {
+    return path.dirname(path.dirname(resolved));
+  }
+
+  return resolved;
+}
+
 export function parseArgs(args: string[]): ParsedArgs {
   const opts: ParsedArgs = {
-    workspace: process.env.HTTP_FORGE_WORKSPACE ?? process.cwd(),
+    workspace: normalizeWorkspacePath(process.env.HTTP_FORGE_WORKSPACE ?? process.cwd()),
     recursive: true,
     variables: {},
     stopOnError: false,
@@ -47,7 +62,7 @@ export function parseArgs(args: string[]): ParsedArgs {
     const arg = args[i];
 
     if (arg === '--workspace' && i + 1 < args.length) {
-      opts.workspace = args[++i];
+      opts.workspace = normalizeWorkspacePath(args[++i]);
     } else if (arg === '--collection' && i + 1 < args.length) {
       opts.collection = args[++i];
     } else if (arg === '--request' && i + 1 < args.length) {
