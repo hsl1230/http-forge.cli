@@ -57,7 +57,7 @@
   },
   "dependencies": {
     "@http-forge/codegen": "^0.1.10",
-    "@http-forge/core": "^0.6.36",
+    "@http-forge/core": "^0.6.37",
     "java-parser": "^0.3.2"
   },
   "optionalDependencies": {
