@@ -56,21 +56,16 @@ NOTES:
 
     if (platform === 'win32') {
       const cmdExe = process.env.ComSpec || process.env.COMSPEC || 'cmd.exe';
-      const commandLine = `"${scriptPath}" ${modeArgs.map(quoteForCmdArg).join(' ')}`.trim();
-      // cmd.exe /c quirk: when the command begins with ", the entire argument must
-      // be wrapped in an additional outer pair of quotes so cmd strips them and
-      // executes the inner quoted path correctly.
-      // windowsVerbatimArguments prevents Node.js from re-escaping the quotes,
-      // which would turn "path" into \"path\" and break cmd.exe's parsing.
-      const cmdArg = commandLine.startsWith('"') ? `"${commandLine}"` : commandLine;
-      child = spawn(cmdExe, ['/d', '/s', '/c', cmdArg], {
+      // Start with `call` so cmd.exe does not treat the quoted batch path as a title.
+      const commandLine = `call "${scriptPath}" ${modeArgs.map(quoteForCmdArg).join(' ')}`.trim();
+      child = spawn(cmdExe, ['/d', '/s', '/c', commandLine], {
         stdio: 'inherit',
         windowsHide: false,
         windowsVerbatimArguments: true,
       });
     } else {
-      // The script declares #!/bin/bash; spawn it directly so the shebang is honoured.
-      child = spawn(scriptPath, modeArgs, {
+      // Invoke Bash explicitly because npm archives can lose the script executable bit.
+      child = spawn('/bin/bash', [scriptPath, ...modeArgs], {
         stdio: 'inherit',
       });
     }

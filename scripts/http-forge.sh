@@ -13,6 +13,11 @@ EXTENSION="henry-huang.http-forge"
 INSTALL_DIR="$HOME/.http-forge-launcher/vscode"
 TEST_DATA_DIR="$HOME/.http-forge-launcher/vscode-data"
 
+is_wsl() {
+    [[ -n "${WSL_INTEROP:-}" || -n "${WSL_DISTRO_NAME:-}" ]] || \
+        grep -qiE 'microsoft|wsl' /proc/version 2>/dev/null
+}
+
 # ─── Parse Arguments ───────────────────────────────────────────
 MODE="test"
 WORKSPACE_ARGS=()
@@ -48,6 +53,16 @@ find_code() {
         return
     fi
 
+    # WSL may expose the Windows VS Code CLI as an executable rather than `code`.
+    if is_wsl; then
+        for bin in code.exe code-insiders.exe; do
+            if command -v "$bin" &>/dev/null; then
+                command -v "$bin"
+                return
+            fi
+        done
+    fi
+
     # Check common Linux locations
     for bin in /usr/bin/code /snap/bin/code /usr/share/code/bin/code; do
         if [[ -x "$bin" ]]; then
@@ -72,6 +87,14 @@ find_code() {
     fi
 
     return 1
+}
+
+code_data_dir() {
+    if is_wsl && [[ "$CODE_BIN" == *.exe ]] && command -v wslpath &>/dev/null; then
+        wslpath -w "$TEST_DATA_DIR"
+    else
+        echo "$TEST_DATA_DIR"
+    fi
 }
 
 # ─── Install VS Code ──────────────────────────────────────────
@@ -119,6 +142,7 @@ if [[ -z "$CODE_BIN" ]]; then
 fi
 
 echo "[http-forge] Using: $CODE_BIN"
+CODE_TEST_DATA_DIR=$(code_data_dir)
 
 # Install extension only where it will actually be launched
 echo "[http-forge] Ensuring extension is installed..."
@@ -134,7 +158,7 @@ case "$MODE" in
         if [[ ! -f "$TEST_DATA_DIR/User/settings.json" ]]; then
             echo '{"debug.showInActivityBar": false, "debug.showInStatusBar": "never", "workbench.startupEditor": "none"}' > "$TEST_DATA_DIR/User/settings.json"
         fi
-        "$CODE_BIN" --profile "$PROFILE_TEST" --user-data-dir "$TEST_DATA_DIR" --install-extension "$EXTENSION" --force 2>/dev/null
+        "$CODE_BIN" --profile "$PROFILE_TEST" --user-data-dir "$CODE_TEST_DATA_DIR" --install-extension "$EXTENSION" --force 2>/dev/null
         "$CODE_BIN" --profile "$PROFILE_DEV" --install-extension "$EXTENSION" --force 2>/dev/null
         ;;
 esac
@@ -158,8 +182,8 @@ case "$MODE" in
         echo "  → Test: isolated instance (--user-data-dir)"
         echo "  → Dev:  default VS Code"
         # Test instance
-        "$CODE_BIN" --new-window --profile "$PROFILE_TEST" --user-data-dir "$TEST_DATA_DIR" "${DISABLE_EXTENSIONS[@]}" "${WORKSPACE_ARGS[@]}"
-        "$CODE_BIN" --profile "$PROFILE_TEST" --user-data-dir "$TEST_DATA_DIR" --open-url "vscode:extension/$EXTENSION" &
+        "$CODE_BIN" --new-window --profile "$PROFILE_TEST" --user-data-dir "$CODE_TEST_DATA_DIR" "${DISABLE_EXTENSIONS[@]}" "${WORKSPACE_ARGS[@]}"
+        "$CODE_BIN" --profile "$PROFILE_TEST" --user-data-dir "$CODE_TEST_DATA_DIR" --open-url "vscode:extension/$EXTENSION" &
         # Dev instance
         "$CODE_BIN" --new-window --profile "$PROFILE_DEV" "${WORKSPACE_ARGS[@]}"
         "$CODE_BIN" --profile "$PROFILE_DEV" --open-url "vscode:extension/$EXTENSION" &
