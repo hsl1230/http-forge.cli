@@ -174,9 +174,22 @@ http-forge launch --dev /path/to/workspace
 
 Use `http-forge launch` when you want the standalone HTTP Forge UI from terminal.
 
-The launcher auto-detects OS/shell and uses the matching script:
-- Linux/macOS: `scripts/http-forge.sh`
-- Windows: `scripts/http-forge.bat`
+The launcher auto-detects OS/shell and picks the matching script:
+- Linux/macOS: `scripts/http-forge.sh` via `/bin/bash`
+- Windows Git Bash (MSYS/MinGW, `MSYSTEM`/`SHELL`/`BASH_VERSION`): `scripts/http-forge.sh` via `bash` (Windows path converted to `/c/...` for MSYS)
+- Windows cmd / PowerShell: `scripts/http-forge.bat` via `cmd.exe /d /s /c call`
+
+## Workspace Modes & Config
+
+HTTP Forge CLI uses the same workspace discovery as `@http-forge/core`. Two Git layouts are supported with **any folder name** for standalone:
+
+**Integrated** — `workspace/.http-forge/assets/{collections,environments,suites}` (default). Config priority: `workspace/http-forge.config.json` **before** `workspace/.http-forge/http-forge.config.json`. All `storage.*` / `history` / `results` / `scripts.modulePaths` / cert paths are resolved relative to the config file that defines them (old ` "./.http-forge/assets"` inside `.http-forge` is auto-stripped).
+
+**Standalone (any name)** — clone the forge repo as `my-standalone`, `http-forge-assets`, `acme-tests` and open that folder. `assets/` at root or bare `collections/` at root are both recognized (structural check, not name). `my-standalone/assets` opened directly as workspace → normalized to `my-standalone`; `my-project/.http-forge/assets` → normalized to `my-project`.
+
+**Lazy creation:** opening an empty folder does **not** create `.http-forge` on CLI startup. First `import`, `create`, or `run` that needs persistence creates `assets/collections` and `AGENTS.md` once.
+
+**All commands accept `--workspace <path>`** (default `cwd` or `$HTTP_FORGE_WORKSPACE`). The same priority/relative rules apply regardless of which command you run.
 
 ## Common Run Patterns
 

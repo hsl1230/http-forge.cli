@@ -5,6 +5,17 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.41 - 2026-09-23
+
+### Added
+
+- **Workspace modes — integrated vs standalone (any name)** — CLI now uses the same `@http-forge/core` workspace discovery as the extension: integrated `workspace/.http-forge/assets/{collections,environments,suites}` **or** standalone `my-standalone/assets/{collections,…}` / bare `collections/` at root (`http-forge-assets` style). Standalone repo name can be anything (`my-standalone`, `acme-tests`); detection is structural (`assets/collections` exists), not name-based. Opening `my-standalone/assets` directly is normalized to `my-standalone`; `my-project/.http-forge/assets` → `my-project`.
+
+### Changed
+
+- **`launch` on Windows now detects Git Bash vs cmd/PowerShell** — `scripts/http-forge.sh` is now correctly used when `http-forge launch` is run from Git Bash on Windows (detected via `MSYSTEM`/`MSYS`/`SHELL` contains `bash`/`BASH_VERSION`/`OSTYPE` `msys`/`TERM_PROGRAM` `mintty`). Previously the launcher always used `http-forge.bat` on `win32`, which failed on `bash`-only syntax. `cmd`/`PowerShell` still use `.bat` via `cmd.exe /d /s /c call`; Git Bash uses `bash` with Windows `C:\` → `/c/` conversion. Help text updated and helpers (`isGitBashOnWindows`, `resolveLauncherScript`) exported for tests.
+- **`@http-forge/core` upgraded to ^0.6.39** — inherits workspace-mode config priority (`workspace/http-forge.config.json` **before** `workspace/.http-forge/http-forge.config.json`), config-relative `storage.*`/`history`/`results`/`scripts.modulePaths` resolution, and lazy `.http-forge` creation (no `mkdir` on empty workspace until first collection/suite/env).
+
 ## 0.2.38 - 2026-09-22
 
 ### Added

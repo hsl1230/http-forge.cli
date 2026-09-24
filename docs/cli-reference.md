@@ -46,6 +46,20 @@ npm run build
 
 ---
 
+## Workspace Modes & Config Resolution
+
+The CLI delegates to `@http-forge/core` `ConfigService` — same rules as the extension. Two Git layouts are supported, and the **standalone repo name can be anything** (`my-standalone`, `http-forge-assets`, `acme-tests`):
+
+**Integrated** — `workspace/.http-forge/assets/{collections,environments,suites}` (default, `.http-forge` literal).  
+**Standalone** — clone the forge repo itself and open that folder: `assets/` at root or bare `collections/` at root (`http-forge-assets` today). Detection is structural (`assets/collections` or `collections` exists), not name-based. Opening `my-standalone/assets` directly as `--workspace` is normalized to `my-standalone`; `my-project/.http-forge/assets` → `my-project`.
+
+*No config:* probes `workspace/.http-forge/assets` → `workspace/assets` → `workspace/http-forge-assets` → bare `workspace` for `collections`.  
+*With config:* priority is `workspace/http-forge.config.json` **before** `workspace/.http-forge/http-forge.config.json`. All `storage.root` / `history` / `results` / `scripts.modulePaths` / `restClientExport.path` / cert paths are resolved **relative to the config file** (`path.join(configDir, …)`). Old `"./.http-forge/assets"` inside `.http-forge` is auto-stripped for backward compat.
+
+**Lazy creation:** running `http-forge` on an empty folder does **not** create `.http-forge` on startup. First `import`, `architect --apply`, `generate-suite` (non-dry-run), or `run` that needs persistence creates `assets/collections` and `.http-forge/AGENTS.md` once. All commands accept `--workspace <path>` (default `cwd` or `$HTTP_FORGE_WORKSPACE`).
+
+---
+
 ## Commands
 
 ### `import`
@@ -127,8 +141,12 @@ http-forge launch --dev /path/to/workspace
 - `--help` — Show launcher help
 
 **Notes:**
-- Shell/OS is detected automatically and the matching launcher is used (`http-forge.sh` on Linux/macOS, `http-forge.bat` on Windows).
+- Shell/OS is detected automatically and the matching launcher is used:
+  - Linux/macOS: `http-forge.sh` via `/bin/bash`
+  - Windows Git Bash (detected via `MSYSTEM`/`MSYS`/`SHELL` contains `bash`/`BASH_VERSION`/`OSTYPE` `msys`/`TERM_PROGRAM` `mintty`): `http-forge.sh` via `bash` (Windows `C:\` path converted to `/c/` for MSYS)
+  - Windows cmd / PowerShell (`POWERSHELL_DISTRIBUTION_CHANNEL` / `PSExecutionPolicyPreference`): `http-forge.bat` via `cmd.exe /d /s /c call`
 - The launcher ensures the HTTP Forge extension is installed in the target profile before opening VS Code.
+- On Windows, launching from Git Bash correctly runs the `.sh` script (previously always used `.bat` and failed on `bash`-only syntax).
 
 ---
 
