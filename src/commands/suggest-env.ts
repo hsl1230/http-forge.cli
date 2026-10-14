@@ -74,7 +74,7 @@ export async function handleSuggestEnv(args: string[]): Promise<void> {
         console.error('Error: --ai requires OPENAI_API_KEY or ANTHROPIC_API_KEY to be set.');
         process.exit(1);
       }
-      suggestions = await scanCollectionForEnvVarsWithAi(collection, provider);
+      suggestions = await scanCollectionForEnvVarsWithAi(collection, provider, container.collection);
     } else {
       suggestions = detectEnvSuggestions(collection, minOccurrences);
     }
