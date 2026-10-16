@@ -16,6 +16,7 @@ Command-line interface for executing HTTP Forge collections, test suites, and MC
   - [generate-suite](#generate-suite)
   - [generate-workflow](#generate-workflow)
   - [drift](#drift)
+  - [qa](#qa)
   - [schedule](#schedule)
   - [mcp](#5-manage-mcp-server)
   - [copy-as](#6-copy-as-code-snippet)
@@ -506,6 +507,44 @@ http-forge drift --path ./backend --output table
 - `--stored-git-hash <sha>` — Git HEAD hash from a prior scan (enables git-based drift detection)
 - `--stored-scanned-at <iso>` — ScannedAt timestamp from a prior scan (mtime-based drift)
 - `--output json|table` — Output format (default: `json`)
+
+---
+
+### `qa`
+
+One-shot API quality gate: discover endpoints from backend source code, generate (or reuse) requests in the target collection, run the deterministic QA suite against a live server, and report per-endpoint results. Reruns are idempotent — existing requests are matched by method + path and reused, so nothing is duplicated unless the source changed.
+
+```bash
+# Preview the plan without creating requests or running
+http-forge qa --path ./backend --collection "My API" --base-url http://localhost:3000 --dry-run
+
+# Run the gate and print the table summary
+http-forge qa --path ./backend --collection "My API" --base-url http://localhost:3000 --env staging
+
+# CI: fail on drift, archive the machine-readable report
+http-forge qa --path ./backend --collection "My API" --base-url $STAGING_URL \
+  --env staging --fail-on-drift --report ./qa-report.json --output json
+```
+
+**Options:**
+- `--path, -p <path>` — Project root to scan (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--collection, -c <ref>` — Target collection (id, slug, or name; default: first collection)
+- `--base-url <url>` — Running server to execute against (required unless `--dry-run`)
+- `--env, --environment <name>` — Environment for variable resolution (default: selected)
+- `--variables <json>` — Extra variables as a JSON object (e.g. `'{"TOKEN":"abc"}'`)
+- `--framework, -f <name>` — Restrict discovery (express, nestjs, fastify, lambda, spring, fastapi; default: all)
+- `--dry-run` — Preview the plan without creating requests or running
+- `--ai-assertions` — Propose LLM-written assertions after the run; advisory only (needs `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
+- `--assert-body-schema` — Also assert JSON array response bodies
+- `--fail-on-drift` — Exit `3` when the project moved since the stored scan
+- `--stored-git-hash <sha>` — Git HEAD from a prior scan (enables git-based drift)
+- `--stored-scanned-at <iso>` — Scan time from a prior scan (mtime-based drift)
+- `--report <path>` — Write the full JSON report to this file
+- `--output json|table` — Stdout format (default: `table`)
+- `--json` — Short for `--output json`
+- `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+
+**Exit codes:** `0` pass/dry-run, `1` assertion failures, `2` infra error (server unreachable, unknown collection/framework), `3` drift (with `--fail-on-drift`).
 
 ---
 

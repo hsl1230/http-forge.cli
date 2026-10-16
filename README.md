@@ -116,6 +116,7 @@ npm run build
 | `http-forge import ...` | Import collections and Postman environment files |
 | `http-forge generate ...` | Generate typed TypeScript API clients from collections |
 | `http-forge architect ...` | Design a complete REST API from a natural-language intent |
+| `http-forge qa ...` | One-shot API quality gate: discover, generate, run, report |
 | `http-forge suggest-env ...` | Detect hardcoded values and suggest env vars |
 | `http-forge refresh-agents-md` | Check `.http-forge/AGENTS.md` staleness (`--apply` refreshes with backup) |
 | `http-forge schedule ...` | Generate scheduled CI workflow/cron config |
@@ -136,6 +137,24 @@ http-forge architect "a todo list" --name "Todo API" \
 ```
 
 Requires an AI provider (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`). All generated artifacts are tagged `ai_generated: true` so the Phase 2b drift machinery keeps them honest when your code changes.
+
+## QA Check Your Backend in One Shot
+
+`http-forge qa` discovers endpoints from backend source code, generates (or reuses) requests in a target collection, runs the deterministic QA suite against a live server, and reports per-endpoint results. Reruns are idempotent — requests are matched by method + path and reused, so nothing is duplicated unless the source changed:
+
+```bash
+# Preview the plan without creating requests or running
+http-forge qa --path ./backend --collection "My API" --base-url http://localhost:3000 --dry-run
+
+# Run the gate against staging and print the table summary
+http-forge qa --path ./backend --collection "My API" --base-url http://localhost:3000 --env staging
+
+# CI: fail on drift, archive the machine-readable report
+http-forge qa --path ./backend --collection "My API" --base-url $STAGING_URL \
+  --env staging --fail-on-drift --report ./qa-report.json --output json
+```
+
+Exit codes: `0` pass/dry-run, `1` assertion failures, `2` infra error, `3` drift. Full options in [docs/cli-reference.md](docs/cli-reference.md#qa).
 
 ## Generate Typed Clients
 

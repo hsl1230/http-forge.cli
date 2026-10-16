@@ -15,6 +15,7 @@ export { handleArchitect } from './commands/architect';
 export { handleGenerateSuite } from './commands/generate-suite';
 export { handleGenerateWorkflow } from './commands/generate-workflow';
 export { handleDrift } from './commands/drift';
+export { handleQa } from './commands/qa';
 export { handleRefreshAgentsMd } from './commands/refresh-agents-md';
 export { handleReview } from './commands/review';
 export { handleGenerate } from './commands/generate';

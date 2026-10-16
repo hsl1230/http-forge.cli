@@ -24,6 +24,7 @@ import {
   handleLaunch,
   handleList,
   handleMcpGroup,
+  handleQa,
   handleRefreshAgentsMd,
   handleReleaseNotes,
   handleRunGroup,
@@ -164,6 +165,14 @@ export async function main(): Promise<void> {
           break;
         }
         await handleDrift(subArgs);
+        break;
+
+      case 'qa':
+        if (isHelpFlag(subArgs[0])) {
+          await handleQa(['--help']);
+          break;
+        }
+        await handleQa(subArgs);
         break;
 
       case 'refresh-agents-md':
@@ -406,6 +415,25 @@ COMMANDS:
       --stored-git-hash <sha>  Git HEAD from a prior scan (enables git-based drift)
       --stored-scanned-at <iso> Scan time from a prior scan (mtime-based drift)
       --output <fmt>      Output format: json or table (default: json)
+
+  qa                      One-shot API quality gate: discover, generate, run, report
+    Options:
+      --path <path>       Project root to scan (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --collection <ref>  Target collection (id, slug, or name; default: first)
+      --base-url <url>    Running server to execute against (required unless --dry-run)
+      --env <name>        Environment for variable resolution (default: selected)
+      --variables <json>  Extra variables as a JSON object (e.g. '{"TOKEN":"abc"}')
+      --framework <name>  Restrict discovery (express, nestjs, fastify, lambda,
+                          spring, fastapi; default: all)
+      --dry-run           Preview the plan without creating requests or running
+      --ai-assertions     Propose LLM-written assertions after the run (advisory only)
+      --assert-body-schema Also assert JSON array response bodies
+      --fail-on-drift     Exit 3 when the project moved since the stored scan
+      --stored-git-hash <sha> Git HEAD from a prior scan (enables git-based drift)
+      --stored-scanned-at <iso> Scan time from a prior scan (mtime-based drift)
+      --report <path>     Write the full JSON report to this file
+      --output <fmt>      Output format: json or table (default: table)
+    Exit codes: 0 pass/dry-run, 1 assertion failures, 2 infra error, 3 drift
 
   refresh-agents-md       Check whether .http-forge/AGENTS.md is stale (dry-run)
     Options:

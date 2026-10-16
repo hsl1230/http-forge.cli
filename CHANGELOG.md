@@ -5,6 +5,16 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.42 - 2026-10-14
+
+### Added
+
+- **`qa` command — one-shot API quality gate** — `http-forge qa --path <project> --collection <ref> --base-url <url>`: discover endpoints from backend source, generate (or reuse) requests, run the deterministic QA suite, and report per-endpoint results as a table or JSON (`--report` writes the full artifact). Reruns are idempotent (method + path matching, nothing duplicated). Exit codes: `0` pass/dry-run, `1` assertion failures, `2` infra error, `3` drift (with `--fail-on-drift`). Supports `--dry-run`, `--ai-assertions`, `--assert-body-schema`, `--env`, `--variables`, `--framework`, and stored-scan drift flags. See `docs/cli-reference.md#qa`.
+
+### Changed
+
+- **`@http-forge/core` upgraded to ^0.6.40** — inherits lazy collection loading (metadata-only startup, on-demand heavy fields) and the `ModuleLoader` stderr fix (CLI `--output json` on stdout is no longer polluted by loader diagnostics).
+
 ## 0.2.41 - 2026-09-23
 
 ### Added
