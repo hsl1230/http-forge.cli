@@ -75,6 +75,7 @@
     }
   },
   "optionalDependencies": {
+    "@1password/sdk": "^0.1.0",
     "@aws-sdk/client-secrets-manager": "^3.0.0",
     "@azure/identity": "^4.0.0",
     "@azure/keyvault-secrets": "^4.0.0",
