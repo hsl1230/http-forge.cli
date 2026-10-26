@@ -46,6 +46,7 @@ Marketplace: [HTTP Forge](https://marketplace.visualstudio.com/items?itemName=he
 - HTTP Forge workspaces and collections
 - OpenAPI specs
 - Postman imports
+- WebSocket and Socket.IO requests (headless runs)
 - GitHub Actions, Jenkins, GitLab CI, and other pipelines
 
 ## Postman Compatibility (Import + Run)

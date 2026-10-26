@@ -200,6 +200,8 @@ http-forge run collections/auth-flow/Login/get-token --env dev
 
 Path-based dispatch is useful when navigating a workspace in a terminal — `cd` into a folder and pass its relative path directly.
 
+WebSocket and Socket.IO requests stored in collections are supported by `run request`, `run collection`, `run folder`, and `run suite`; they execute headlessly with the same transcript, script, and assertion semantics as the extension.
+
 ---
 
 ### 1. `run request`
