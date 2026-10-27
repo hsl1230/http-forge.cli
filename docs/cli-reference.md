@@ -761,9 +761,9 @@ http-forge run suite smoke-tests \
 
 ## CI/CD Integration
 
-> For a complete step-by-step guide with examples for GitHub Actions, Docker, and bare npm, see **[docs/ci-guide.md](docs/ci-guide.md)**.
+> For a complete step-by-step guide with examples for GitHub Actions, Docker, and bare npm, see **[./ci-guide.md](./ci-guide.md)**.
 >
-> For **AI-driven failure analysis** (Claude automatically diagnoses failures and posts results as a PR comment), see [Option E — AI-driven analysis](docs/ci-guide.md#option-e--ai-driven-analysis-mcp--claude) in the CI guide.
+> For **AI-driven failure analysis** (Claude automatically diagnoses failures and posts results as a PR comment), see [Option E — AI-driven analysis](./ci-guide.md#option-e--ai-driven-analysis-mcp--claude) in the CI guide.
 
 ### Quick start — GitHub Actions
 
@@ -916,5 +916,5 @@ curl http://127.0.0.1:3100/health
 
 The CLI delegates to `@http-forge/core` direct execution APIs. The service container bootstraps Node.js-specific adapters (file I/O, secrets). Output is formatted to JSON or table. All errors go to stderr; the machine-readable result goes to stdout only.
 
-See [@http-forge/core README](../http-forge.core/README.md) for the full API reference.
+See [@http-forge/core README](../../http-forge.core/README.md) for the full API reference.
 
