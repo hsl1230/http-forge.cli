@@ -120,6 +120,8 @@ npm run build
 | `http-forge qa ...` | One-shot API quality gate: discover, generate, run, report |
 | `http-forge suggest-env ...` | Detect hardcoded values and suggest env vars |
 | `http-forge refresh-agents-md` | Check `.http-forge/AGENTS.md` staleness (`--apply` refreshes with backup) |
+| `http-forge generate-ai-agent` | Alias for `refresh-agents-md` (`--refresh` == `--apply`) |
+| `http-forge generate-ai-config` | Create thin pointer files so AI tools discover `.http-forge/AGENTS.md` (`--tool claude\|copilot\|opencode\|cursor\|all`) |
 | `http-forge schedule ...` | Generate scheduled CI workflow/cron config |
 | `http-forge copy-as ...` | Export request as curl/fetch/python snippet |
 

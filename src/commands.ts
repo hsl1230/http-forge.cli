@@ -17,6 +17,8 @@ export { handleGenerateWorkflow } from './commands/generate-workflow';
 export { handleDrift } from './commands/drift';
 export { handleQa } from './commands/qa';
 export { handleRefreshAgentsMd } from './commands/refresh-agents-md';
+export { handleGenerateAiAgent } from './commands/generate-ai-agent';
+export { handleGenerateAiConfig } from './commands/generate-ai-config';
 export { handleReview } from './commands/review';
 export { handleGenerate } from './commands/generate';
 export { handleGenerateCollection } from './commands/generate-collection';

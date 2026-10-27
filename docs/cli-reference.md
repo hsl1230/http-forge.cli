@@ -570,6 +570,42 @@ http-forge refresh-agents-md --apply
 
 ---
 
+### `generate-ai-agent`
+
+Alias for `refresh-agents-md`. Checks whether `.http-forge/AGENTS.md` is stale and optionally generates/refreshes it.
+
+```bash
+http-forge generate-ai-agent --workspace ./my-project
+http-forge generate-ai-agent --apply
+http-forge generate-ai-agent --refresh
+```
+
+**Options:**
+- `--workspace, -w <path>` — Workspace root (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--apply` — Back up and rewrite the guide (default: status only)
+- `--refresh` — Alias for `--apply`
+- `--output json|table` — Output format (default: `json`)
+
+---
+
+### `generate-ai-config`
+
+Create thin pointer files so AI tools (Claude Code, GitHub Copilot, OpenCode, Cursor) discover the HTTP Forge guide in `.http-forge/AGENTS.md`. Dry-run by default; pass `--apply` to write files.
+
+```bash
+http-forge generate-ai-config --tool claude --apply
+http-forge generate-ai-config --tool all --apply
+http-forge generate-ai-config --tool copilot
+```
+
+**Options:**
+- `--tool <name>` — `claude` | `copilot` | `opencode` | `cursor` | `all` (default: `all`)
+- `--workspace, -w <path>` — Workspace root (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--apply` — Write the shim files (default: status only)
+- `--output json|table` — Output format (default: `json`)
+
+---
+
 ### `schedule`
 
 Generate a CI schedule configuration for running an HTTP Forge suite automatically. Outputs a **GitHub Actions workflow** file, a **cron entry**, or both — no daemon required.

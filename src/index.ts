@@ -26,6 +26,8 @@ import {
   handleMcpGroup,
   handleQa,
   handleRefreshAgentsMd,
+  handleGenerateAiAgent,
+  handleGenerateAiConfig,
   handleReleaseNotes,
   handleRunGroup,
   handleReview,
@@ -181,6 +183,22 @@ export async function main(): Promise<void> {
           break;
         }
         await handleRefreshAgentsMd(subArgs);
+        break;
+
+      case 'generate-ai-agent':
+        if (isHelpFlag(subArgs[0])) {
+          await handleGenerateAiAgent(['--help']);
+          break;
+        }
+        await handleGenerateAiAgent(subArgs);
+        break;
+
+      case 'generate-ai-config':
+        if (isHelpFlag(subArgs[0])) {
+          await handleGenerateAiConfig(['--help']);
+          break;
+        }
+        await handleGenerateAiConfig(subArgs);
         break;
 
       case 'review':
@@ -439,6 +457,20 @@ COMMANDS:
     Options:
       --workspace <path>  Workspace root (default: $HTTP_FORGE_WORKSPACE or cwd)
       --apply             Back up to AGENTS.md.bak and write the latest template
+      --output <fmt>      Output format: json or table (default: json)
+
+  generate-ai-agent       Alias for refresh-agents-md (--refresh == --apply)
+    Options:
+      --workspace <path>  Workspace root (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --apply             Back up to AGENTS.md.bak and write the latest template
+      --refresh           Alias for --apply
+      --output <fmt>      Output format: json or table (default: json)
+
+  generate-ai-config      Create thin pointer files so AI tools discover .http-forge/AGENTS.md
+    Options:
+      --tool <name>       claude | copilot | opencode | cursor | all (default: all)
+      --workspace <path>  Workspace root (default: $HTTP_FORGE_WORKSPACE or cwd)
+      --apply             Write the shim files (default: status only)
       --output <fmt>      Output format: json or table (default: json)
 
   review                  Phase 3 review gate: run deterministic rules over a suite run
