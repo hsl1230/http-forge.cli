@@ -600,6 +600,7 @@ http-forge generate-ai-config --tool copilot
 
 **Options:**
 - `--tool <name>` — `claude` | `copilot` | `opencode` | `cursor` | `all` (default: `all`)
+- `--template` — Write a richer shim with tool-specific frontmatter (default: thin pointer)
 - `--workspace, -w <path>` — Workspace root (default: `$HTTP_FORGE_WORKSPACE` or cwd)
 - `--apply` — Write the shim files (default: status only)
 - `--output json|table` — Output format (default: `json`)
