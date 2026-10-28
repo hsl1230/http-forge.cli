@@ -22,6 +22,7 @@ import {
     SpringDiscoveryProvider,
 } from '@http-forge/core';
 import { outputListResult } from '../output/format';
+import { handleGenerateCollectionFromDiscovery } from './generate-collection';
 
 const ALL_PROVIDERS = [
   new ExpressDiscoveryProvider(),
@@ -40,6 +41,10 @@ export async function handleDiscover(args: string[]): Promise<void> {
 
   let projectPath: string | undefined;
   let frameworkFilter: string | undefined;
+  let generateCollection: string | undefined;
+  let baseUrl = '';
+  let dryRun = false;
+  let workspace = process.env.HTTP_FORGE_WORKSPACE ?? process.cwd();
   let outputFormat: 'json' | 'table' = 'json';
 
   for (let i = 0; i < args.length; i++) {
@@ -52,7 +57,25 @@ export async function handleDiscover(args: string[]): Promise<void> {
       outputFormat = 'json';
     } else if (arg === '--output' && i + 1 < args.length) {
       outputFormat = args[++i] === 'table' ? 'table' : 'json';
+    } else if (arg === '--generate-collection' && i + 1 < args.length) {
+      generateCollection = args[++i];
+    } else if (arg === '--base-url' && i + 1 < args.length) {
+      baseUrl = args[++i];
+    } else if (arg === '--dry-run') {
+      dryRun = true;
+    } else if (arg === '--workspace' && i + 1 < args.length) {
+      workspace = args[++i];
     }
+  }
+
+  if (generateCollection) {
+    const fwd = ['--collection', generateCollection, '--path', projectPath ?? (process.env.HTTP_FORGE_WORKSPACE ?? process.cwd())];
+    if (baseUrl) fwd.push('--base-url', baseUrl);
+    if (dryRun) fwd.push('--dry-run');
+    if (workspace) fwd.push('--workspace', workspace);
+    if (outputFormat === 'table') fwd.push('--output', 'table');
+    await handleGenerateCollectionFromDiscovery(fwd);
+    return;
   }
 
   const projectRoot = projectPath ?? process.env.HTTP_FORGE_WORKSPACE ?? process.cwd();
@@ -149,6 +172,9 @@ Options:
                           (default: all)
   --output json|table     Output format (default: json)
   --json                  Short for --output json
+  --generate-collection <ref>  After scanning, create requests in the given collection
+  --base-url <url>        Base URL to prefix discovered paths (with --generate-collection)
+  --dry-run               Preview without creating requests (with --generate-collection)
   -h, --help              Show this help
 
 Examples:

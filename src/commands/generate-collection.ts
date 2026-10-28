@@ -16,6 +16,14 @@ import {
   enhanceCollection,
   parseCurlCommand,
   parseHar,
+  ApiDiscoveryService,
+  DiscoveryConfig,
+  ExpressDiscoveryProvider,
+  FastApiDiscoveryProvider,
+  FastifyDiscoveryProvider,
+  LambdaDiscoveryProvider,
+  NestDiscoveryProvider,
+  SpringDiscoveryProvider,
   type IOpenApiImporter,
   type UnifiedRequest,
 } from '@http-forge/core';
@@ -36,6 +44,9 @@ export async function handleGenerateCollection(args: string[]): Promise<void> {
   let envName: string | undefined;
   let createEnvs = false;
   let aiEnhance = false;
+  let projectPath: string | undefined;
+  let baseUrl = '';
+  let dryRun = false;
   let workspace = process.env.HTTP_FORGE_WORKSPACE ?? process.cwd();
   let outputFormat: 'json' | 'table' = 'json';
 
@@ -59,6 +70,12 @@ export async function handleGenerateCollection(args: string[]): Promise<void> {
       aiEnhance = true;
     } else if (arg === '--workspace' && i + 1 < args.length) {
       workspace = args[++i];
+    } else if ((arg === '--path' || arg === '-p') && i + 1 < args.length) {
+      projectPath = args[++i];
+    } else if (arg === '--base-url' && i + 1 < args.length) {
+      baseUrl = args[++i].replace(/\/+$/, '');
+    } else if (arg === '--dry-run') {
+      dryRun = true;
     } else if (arg === '--json') {
       outputFormat = 'json';
     } else if (arg === '--output' && i + 1 < args.length) {
@@ -243,6 +260,7 @@ export async function handleGenerateCollection(args: string[]): Promise<void> {
         }, 'json');
       }
     }
+
   } finally {
     container.dispose();
     process.exit(0);
@@ -298,6 +316,9 @@ Examples:
 
   # From a HAR archive (browser/network capture)
   http-forge import collection --har ./capture.har --name "Session Traces"
+
+  # From discovered backend endpoints (requests only, no suite)
+  http-forge generate-collection --from-discovery --path ./backend --collection "My API" --base-url https://api.example.com
 
 `);
 }
@@ -367,4 +388,119 @@ async function createHarRequest(
   if (req.query?.length) options.query = req.query;
   if (req.body) options.body = req.body;
   await container.collection.createRequest(options);
+}
+
+export async function handleGenerateCollectionFromDiscovery(args: string[]): Promise<void> {
+  if (args[0] === '--help' || args[0] === '-h') {
+    printUsage();
+    return;
+  }
+  let collectionName: string | undefined;
+  let projectPath: string | undefined;
+  let baseUrl = '';
+  let dryRun = false;
+  let outputFormat: 'json' | 'table' = 'json';
+  let workspace = process.env.HTTP_FORGE_WORKSPACE ?? process.cwd();
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if ((arg === '--collection' || arg === '-c') && i + 1 < args.length) collectionName = args[++i];
+    else if ((arg === '--path' || arg === '-p') && i + 1 < args.length) projectPath = args[++i];
+    else if (arg === '--base-url' && i + 1 < args.length) baseUrl = args[++i].replace(/\/+$/, '');
+    else if (arg === '--dry-run') dryRun = true;
+    else if (arg === '--json') outputFormat = 'json';
+    else if (arg === '--output' && i + 1 < args.length) outputFormat = args[++i] === 'table' ? 'table' : 'json';
+    else if (arg === '--workspace' && i + 1 < args.length) workspace = args[++i];
+  }
+
+  const container = createNodeContainer(workspace);
+  try {
+          const collections = container.collection.getAllCollections();
+          const col = collectionName
+            ? collections.find((c) => c.id === collectionName || c.name === collectionName)
+            : collections[0];
+          if (!col) {
+            console.error(collectionName
+              ? `Error: collection "${collectionName}" not found.`
+              : 'Error: no collection found (create one first).');
+            process.exit(2);
+          }
+
+          const root = projectPath ?? workspace;
+          const service = new ApiDiscoveryService({
+            providers: [
+              new ExpressDiscoveryProvider(),
+              new NestDiscoveryProvider(),
+              new FastifyDiscoveryProvider(),
+              new LambdaDiscoveryProvider(),
+              new SpringDiscoveryProvider(),
+              new FastApiDiscoveryProvider(),
+            ],
+          });
+          const discoveryConfig: DiscoveryConfig = container.config.getDiscoveryConfig();
+          const result = await service.discover({ workspaceFolder: root, ...discoveryConfig });
+          if (result.endpoints.length === 0) {
+            console.log(`No endpoints discovered in ${root}.`);
+            return;
+          }
+
+          const created: Array<{ name: string; id: string }> = [];
+          for (const ep of result.endpoints) {
+            if (!dryRun) {
+              const pth = (ep.resolvedPath ?? ep.pathExpression).replace(/^\/+/, '');
+              const url = baseUrl ? `${baseUrl}/${pth}` : (ep.resolvedPath ?? ep.pathExpression);
+              const headers = (ep.params ?? [])
+                .filter((pp) => pp.location === 'header')
+                .map((pp) => ({ key: pp.name, value: pp.example ?? '', enabled: true }));
+              const query = (ep.params ?? [])
+                .filter((pp) => pp.location === 'query')
+                .map((pp) => ({ key: pp.name, value: pp.example ?? '', enabled: true }));
+              const params: Record<string, string> = {};
+              for (const pp of ep.params ?? []) {
+                if (pp.location === 'path') {
+                  params[pp.name] = pp.type === 'integer' ? '1' : pp.type === 'number' ? '1.0' : pp.example ?? 'test';
+                }
+              }
+              if (ep.auth?.type === 'jwt' || ep.auth?.type === 'bearer') {
+                headers.push({ key: 'Authorization', value: 'Bearer {{TOKEN}}', enabled: true });
+              }
+              const req = await container.collection.createRequest({
+                collectionId: col.id,
+                name: ep.source?.symbolName || `${ep.method || 'GET'} ${ep.pathExpression}`,
+                method: ep.method || 'GET',
+                url,
+                headers,
+                query,
+                params,
+                body: ep.requestBody?.type === 'json'
+                  ? { type: 'raw' as const, format: 'json' as const, content: '{}' }
+                  : undefined,
+                description: `Discovered from ${ep.source?.filePath} (${ep.framework}, ${ep.confidence}).`,
+              });
+              created.push({ name: req.name, id: req.id });
+            }
+          }
+
+          if (!dryRun) {
+            await container.collection.saveCollection(col);
+          }
+
+          if (outputFormat === 'json') {
+            process.stdout.write(JSON.stringify({
+              collection: col.name,
+              dryRun,
+              endpointCount: result.endpoints.length,
+              requestsCreated: dryRun ? undefined : created,
+            }, null, 2) + '\n');
+          } else {
+            console.log(`\n${dryRun ? '[dry-run] ' : ''}Created ${dryRun ? 0 : created.length} request(s) in collection "${col.name}" from ${result.endpoints.length} discovered endpoint(s).`);
+            if (dryRun) {
+              console.log('  dry-run — no requests were created. Re-run without --dry-run to persist.');
+            }
+          }
+
+  } finally {
+    container.dispose();
+    process.exit(0);
+  }
 }

@@ -112,6 +112,24 @@ if "%MODE%"=="both" (
     call "%CODE_BIN%" --profile "%PROFILE_DEV%" --install-extension %EXTENSION% --force 2>nul
 )
 
+REM Ensure GitHub Copilot is available for AI features
+echo [http-forge] Ensuring GitHub Copilot is installed...
+if "%MODE%"=="test" (
+    call "%CODE_BIN%" --profile "%PROFILE_TEST%" --install-extension GitHub.copilot --force 2>nul
+    call "%CODE_BIN%" --profile "%PROFILE_TEST%" --install-extension GitHub.copilot-chat --force 2>nul
+)
+if "%MODE%"=="dev" (
+    call "%CODE_BIN%" --profile "%PROFILE_DEV%" --install-extension GitHub.copilot --force 2>nul
+    call "%CODE_BIN%" --profile "%PROFILE_DEV%" --install-extension GitHub.copilot-chat --force 2>nul
+)
+if "%MODE%"=="both" (
+    call "%CODE_BIN%" --profile "%PROFILE_TEST%" --user-data-dir "%TEST_DATA_DIR%" --install-extension GitHub.copilot --force 2>nul
+    call "%CODE_BIN%" --profile "%PROFILE_TEST%" --user-data-dir "%TEST_DATA_DIR%" --install-extension GitHub.copilot-chat --force 2>nul
+    call "%CODE_BIN%" --profile "%PROFILE_DEV%" --install-extension GitHub.copilot --force 2>nul
+    call "%CODE_BIN%" --profile "%PROFILE_DEV%" --install-extension GitHub.copilot-chat --force 2>nul
+)
+echo [http-forge] Copilot installed (sign in via Accounts menu to enable AI features).
+
 REM Built-in extensions to disable in test mode (not needed, saves RAM)
 set DISABLE_EXT=--disable-extension ms-vscode.js-debug --disable-extension ms-vscode.js-debug-companion --disable-extension vscode.debug-auto-launch --disable-extension vscode.debug-server-ready
 

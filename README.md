@@ -14,14 +14,14 @@
 [![license](https://img.shields.io/npm/l/%40http-forge%2Fcli)](LICENSE)
 [![node](https://img.shields.io/node/v/%40http-forge%2Fcli)](https://www.npmjs.com/package/@http-forge/cli)
 
-The standalone launcher, terminal, and automation CLI for [HTTP Forge](https://marketplace.visualstudio.com/items?itemName=henry-huang.http-forge).
+**The terminal entry point for HTTP Forge — the API platform built for AI agents.**
 
-Use it to launch HTTP Forge from terminal, run API collections and suites in CI/CD, manage MCP server lifecycle, and generate JUnit/HTML reports.
+Run API tests in CI/CD, launch the standalone UI, and let your AI agent drive the full lifecycle — **Design → Discover → Generate → Edit → Run → Report → Fix** — from the command line. Works with GitHub Copilot, Claude Code, OpenCode, Cursor, and any MCP-compatible client.
 
-Built for Postman-compatible workflows: import Postman collections/environments and run them with Postman-style scripting and assertions.
+Built for Postman-compatible workflows: import Postman collections/environments and run them with Postman-style scripting and assertions. Supports WebSocket and Socket.IO requests headlessly.
 
 For the full interactive experience, run `http-forge launch`.
-The launcher ensures VS Code and the HTTP Forge extension are installed in the target profile before opening it.
+The launcher ensures VS Code, the HTTP Forge extension, and GitHub Copilot are installed in the target profile before opening it.
 Marketplace: [HTTP Forge](https://marketplace.visualstudio.com/items?itemName=henry-huang.http-forge)
 
 ## Who It Is For
@@ -48,6 +48,44 @@ Marketplace: [HTTP Forge](https://marketplace.visualstudio.com/items?itemName=he
 - Postman imports
 - WebSocket and Socket.IO requests (headless runs)
 - GitHub Actions, Jenkins, GitLab CI, and other pipelines
+
+## AI-Native: Works with every AI agent
+
+HTTP Forge ships an MCP server with 60+ tools and a CLI that AI agents can drive directly. No MCP server required — agents can use CLI commands.
+
+| AI Tool | How to connect |
+|---|---|
+| **GitHub Copilot** | `@http-forge` chat participant (built into the extension) or MCP tools |
+| **Claude Code** | Run `http-forge generate-ai-config --tool claude --apply` to create `.claude/commands/http-forge.md` |
+| **OpenCode** | Run `http-forge generate-ai-config --tool opencode --apply` to create `.opencode/commands/http-forge.md` |
+| **Cursor** | Run `http-forge generate-ai-config --tool cursor --apply` to create `.cursor/rules/http-forge.mdc` |
+| **Any MCP client** | `http-forge mcp start --port 3000` then connect your client |
+
+### AI CLI commands
+
+```bash
+# Design an API from a plain-English intent (requires OPENAI_API_KEY or ANTHROPIC_API_KEY)
+http-forge architect "I need a shopping cart" --apply
+
+# Discover endpoints from backend source code
+http-forge discover --path ./backend --output json
+
+# Generate a test suite from discovered endpoints
+http-forge generate-collection --from-discovery --path ./backend --collection "My API"
+
+# Run a QA gate with AI-written assertion suggestions
+http-forge qa --path ./backend --collection "My API" --base-url http://localhost:3000 --ai-assertions
+
+# Generate AI agent guide and tool-specific shims
+http-forge refresh-agents-md --apply
+http-forge generate-ai-config --tool all --apply
+```
+
+### The HTTP Forge loop (AI-driven)
+
+Design (from intent) or Discover (from source) → Generate → Edit → Run → Report → Fix ↺ until green
+
+Every stage is available via CLI and MCP. Your AI agent can drive the entire lifecycle — discover endpoints, generate collections and suites, run tests, diagnose failures, and heal broken assertions.
 
 ## Postman Compatibility (Import + Run)
 
@@ -115,6 +153,7 @@ npm run build
 | `http-forge list ...` | List collections, suites, requests, folders, environments |
 | `http-forge env ...` | Get/set/unset environment variables |
 | `http-forge import ...` | Import collections and Postman environment files |
+| `http-forge generate-collection` | Alias for `import collection` (supports `--from-discovery`) |
 | `http-forge generate ...` | Generate typed TypeScript API clients from collections |
 | `http-forge architect ...` | Design a complete REST API from a natural-language intent |
 | `http-forge qa ...` | One-shot API quality gate: discover, generate, run, report |

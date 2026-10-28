@@ -19,6 +19,7 @@ import {
   handleEnvImport,
   handleGenerate,
   handleGenerateCollection,
+  handleGenerateCollectionFromDiscovery,
   handleGenerateSuite,
   handleGenerateWorkflow,
   handleLaunch,
@@ -86,6 +87,10 @@ export async function main(): Promise<void> {
           break;
         }
         await handleEnv(subArgs);
+        break;
+
+      case 'generate-collection':
+        await handleGenerateCollectionFromDiscovery(subArgs);
         break;
 
       case 'generate':
@@ -338,6 +343,7 @@ COMMANDS:
       --no-values         Omit values in 'get' (show only key names)
 
   generate                Generate typed TypeScript API clients from HTTP Forge collections
+  generate-collection     Generate/import a collection from curl, Postman, OpenAPI, HAR, or discovery
     Required:
       --input / -i <path>   HTTP Forge collections folder
       --output / -o <path>  Output folder for generated TypeScript clients

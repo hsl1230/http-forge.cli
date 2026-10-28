@@ -163,6 +163,26 @@ case "$MODE" in
         ;;
 esac
 
+# Ensure GitHub Copilot is available for AI features (idempotent - skips if already installed)
+echo "[http-forge] Ensuring GitHub Copilot is installed..."
+case "$MODE" in
+    test)
+        "$CODE_BIN" --profile "$PROFILE_TEST" --install-extension "GitHub.copilot" --force 2>/dev/null
+        "$CODE_BIN" --profile "$PROFILE_TEST" --install-extension "GitHub.copilot-chat" --force 2>/dev/null
+        ;;
+    dev)
+        "$CODE_BIN" --profile "$PROFILE_DEV" --install-extension "GitHub.copilot" --force 2>/dev/null
+        "$CODE_BIN" --profile "$PROFILE_DEV" --install-extension "GitHub.copilot-chat" --force 2>/dev/null
+        ;;
+    both)
+        "$CODE_BIN" --profile "$PROFILE_TEST" --user-data-dir "$CODE_TEST_DATA_DIR" --install-extension "GitHub.copilot" --force 2>/dev/null
+        "$CODE_BIN" --profile "$PROFILE_TEST" --user-data-dir "$CODE_TEST_DATA_DIR" --install-extension "GitHub.copilot-chat" --force 2>/dev/null
+        "$CODE_BIN" --profile "$PROFILE_DEV" --install-extension "GitHub.copilot" --force 2>/dev/null
+        "$CODE_BIN" --profile "$PROFILE_DEV" --install-extension "GitHub.copilot-chat" --force 2>/dev/null
+        ;;
+esac
+echo "[http-forge] Copilot installed (sign in via Accounts menu to enable AI features)."
+
 # Built-in extensions to disable in test mode (not needed, saves RAM)
 DISABLE_EXTENSIONS=(--disable-extension ms-vscode.js-debug --disable-extension ms-vscode.js-debug-companion --disable-extension vscode.debug-auto-launch --disable-extension vscode.debug-server-ready)
 

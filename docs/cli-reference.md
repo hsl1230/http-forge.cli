@@ -63,7 +63,10 @@ The CLI delegates to `@http-forge/core` `ConfigService` — same rules as the ex
 
 ## Commands
 
-### `import`
+### `import` / `generate-collection`
+
+`generate-collection` is an alias for `import collection` (same flags, including `--from-discovery`).
+
 
 Import collections and Postman environment files.
 
@@ -404,6 +407,9 @@ http-forge discover --path ./backend --output table
 - `--path <path>` — Project root to scan (default: `$HTTP_FORGE_WORKSPACE` or cwd)
 - `--framework <name>` — Restrict to one framework: `express`, `nestjs`, `fastify`, `lambda`, `spring`, `fastapi` (default: all)
 - `--output json|table` — Output format (default: `json`)
+- `--generate-collection <ref>` — After scanning, create requests in the given collection (no suite)
+- `--base-url <url>` — Base URL to prefix discovered paths (with `--generate-collection`)
+- `--dry-run` — Preview without creating requests (with `--generate-collection`)
 
 ---
 
@@ -433,6 +439,27 @@ http-forge architect "a todo list" --name "Todo API" \
 - `--openapi-out <path>` — Write the round-trip OpenAPI document (requires `--apply`)
 - `--output json|table` — Output format (default: `json`)
 - `--workspace <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+
+---
+
+### `generate-collection`
+
+Scan a backend project and create one request per discovered endpoint in a target collection (no suite). Useful when you want the API definitions without a generated test suite.
+
+```bash
+http-forge generate-collection --path ./backend --collection "My API" --base-url https://api.example.com
+http-forge generate-collection --from-discovery --path ./backend --collection "My API" --dry-run
+```
+
+**Options:**
+- `--from-discovery` — Generate requests from discovered backend endpoints (no suite)
+- `--path, -p <path>` — Project root to scan (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--collection, -c <ref>` — Target collection (id or name; default: first collection)
+- `--base-url <url>` — Base URL to prefix discovered paths
+- `--dry-run` — Preview without creating requests
+- `--workspace, -w <path>` — Workspace folder (default: `$HTTP_FORGE_WORKSPACE` or cwd)
+- `--output json|table` — Output format (default: `json`)
+- `--json` — Short for `--output json`
 
 ---
 

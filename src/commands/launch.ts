@@ -95,10 +95,12 @@ OPTIONS:
 
 NOTES:
   - Detects your shell/OS and picks the matching launcher automatically.
+  - Installs GitHub Copilot + Copilot Chat alongside HTTP Forge (idempotent).
   - On Windows Git Bash this runs scripts/http-forge.sh via bash.
   - On Windows cmd/powershell this runs scripts/http-forge.bat via cmd.exe.
   - On Linux/macOS this runs scripts/http-forge.sh via bash.
 `);
+
     return;
   }
 

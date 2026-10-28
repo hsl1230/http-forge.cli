@@ -21,7 +21,7 @@ export { handleGenerateAiAgent } from './commands/generate-ai-agent';
 export { handleGenerateAiConfig } from './commands/generate-ai-config';
 export { handleReview } from './commands/review';
 export { handleGenerate } from './commands/generate';
-export { handleGenerateCollection } from './commands/generate-collection';
+export { handleGenerateCollection, handleGenerateCollectionFromDiscovery } from './commands/generate-collection';
 export { handleLaunch } from './commands/launch';
 export { handleList } from './commands/list';
 export { handleReleaseNotes } from './commands/release-notes';
