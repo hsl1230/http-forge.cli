@@ -1,6 +1,48 @@
-import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { spawn, execFileSync } from 'node:child_process';
+import { existsSync, readdirSync, mkdirSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+
+const EXAMPLES_REPO_URL = 'https://github.com/hsl1230/http-forge.examples.git';
+const EXAMPLES_ALIASES = new Set<string>([
+  '--examples',
+  '--with-examples',
+  '--clone-examples',
+]);
+
+function defaultExamplesDir(): string {
+  return path.join(os.homedir(), '.http-forge-launcher', 'http-forge.examples');
+}
+
+function ensureExamplesCloned(dest: string): string {
+  if (existsSync(path.join(dest, '.git'))) {
+    return dest;
+  }
+  if (existsSync(dest)) {
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(dest);
+    } catch {
+      entries = [];
+    }
+    if (entries.length > 0) {
+      throw new Error(
+        `Examples directory exists but is not a git clone: ${dest}. Remove it or pass a different location.`
+      );
+    }
+  } else {
+    mkdirSync(path.dirname(dest), { recursive: true });
+  }
+  console.log(`[http-forge] Cloning http-forge.examples into ${dest}...`);
+  try {
+    execFileSync('git', ['clone', EXAMPLES_REPO_URL, dest], { stdio: 'inherit' });
+  } catch (err) {
+    throw new Error(
+      'Failed to clone http-forge.examples. Ensure git is installed and network access is available.'
+    );
+  }
+  return dest;
+}
 
 function isGitBashOnWindows(): boolean {
   if (process.platform !== 'win32') return false;
@@ -90,8 +132,10 @@ USAGE:
 OPTIONS:
   --test   Launch HTTP Forge profile (isolated, default)
   --dev    Launch Default profile (all VS Code extensions)
-  --both   Launch two instances: test + dev
-  --help   Show this help
+  --both       Launch two instances: test + dev
+  --examples   Clone http-forge.examples and open it (test mode)
+               Aliases: --with-examples, --clone-examples
+  --help       Show this help
 
 NOTES:
   - Detects your shell/OS and picks the matching launcher automatically.
@@ -104,7 +148,21 @@ NOTES:
     return;
   }
 
-  const modeArgs = args.length === 0 ? ['--test'] : args;
+  const wantsExamples = args.some((a) => EXAMPLES_ALIASES.has(a));
+  const hasModeFlag = args.some((a) => a === '--test' || a === '--dev' || a === '--both');
+
+  // Strip the examples flag so the underlying launcher script never sees it.
+  let processedArgs = args.filter((a) => !EXAMPLES_ALIASES.has(a));
+
+  if (wantsExamples) {
+    const dest = ensureExamplesCloned(defaultExamplesDir());
+    if (!hasModeFlag) {
+      processedArgs = ['--test', ...processedArgs];
+    }
+    processedArgs = [...processedArgs, dest];
+  }
+
+  const modeArgs = processedArgs.length === 0 ? ['--test'] : processedArgs;
 
   await new Promise<void>((resolve, reject) => {
     let child;

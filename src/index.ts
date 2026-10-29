@@ -305,6 +305,8 @@ COMMANDS:
       --test              Launch with isolated "HTTP Forge" profile (default)
       --dev               Launch with "Default" profile (all extensions)
       --both              Launch both profiles side by side
+      --examples          Clone http-forge.examples and open it (test mode)
+                          Aliases: --with-examples, --clone-examples
       --help              Show launcher help
 
   copy-as                 Print a request as a code snippet
