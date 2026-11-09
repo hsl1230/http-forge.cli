@@ -36,8 +36,25 @@ import {
   handleSuggestEnv
 } from './commands';
 
+import * as fs from 'fs';
+import * as path from 'path';
+
+function getCliVersion(): string {
+  try {
+    const packageJsonPath = path.resolve(__dirname, '..', 'package.json');
+    return JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).version;
+  } catch {
+    return 'unknown';
+  }
+}
+
 export async function main(): Promise<void> {
   const args = process.argv.slice(2);
+
+  if (args[0] === '--version' || args[0] === '-v' || args[0] === 'version') {
+    console.log(getCliVersion());
+    process.exit(0);
+  }
 
   if (args.length === 0) {
     printUsage();
@@ -260,6 +277,9 @@ HTTP Forge CLI
 
 USAGE:
   http-forge <command> [options]
+
+GLOBAL OPTIONS:
+  --version, -v       Print the CLI version and exit
 
 COMMANDS:
   run <type> [name]       Execute requests

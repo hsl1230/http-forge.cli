@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 1.0.2 - 2026-11-09
 
+### Added
+
+- `http-forge --version`, `http-forge -v`, and `http-forge version` now print the current CLI version.
+
 ### Changed
 
 - Upgraded `@http-forge/core` to `^1.0.2`, inheriting request-body hydration for lazy-loaded `body.json` files during collection, request, and suite execution.
