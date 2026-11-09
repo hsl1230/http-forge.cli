@@ -1,5 +1,5 @@
 import { spawn, execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, mkdirSync } from 'node:fs';
+import { existsSync, readdirSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -9,6 +9,22 @@ const EXAMPLES_ALIASES = new Set<string>([
   '--with-examples',
   '--clone-examples',
 ]);
+
+function ensureDemoEnvActive(dest: string): void {
+  const configPath = path.join(dest, 'http-forge.config.json');
+  if (!existsSync(configPath)) return;
+  try {
+    const raw = readFileSync(configPath, 'utf8');
+    const parsed = JSON.parse(raw) as Record<string, any>;
+    if (!parsed.environments || typeof parsed.environments !== 'object') {
+      parsed.environments = {};
+    }
+    parsed.environments.default = 'demo';
+    writeFileSync(configPath, JSON.stringify(parsed, null, '\t') + '\n', 'utf8');
+  } catch {
+    // Leave the cloned config untouched if it cannot be parsed.
+  }
+}
 
 function defaultExamplesDir(): string {
   return path.join(os.homedir(), '.http-forge-launcher', 'http-forge.examples');
@@ -156,6 +172,7 @@ NOTES:
 
   if (wantsExamples) {
     const dest = ensureExamplesCloned(defaultExamplesDir());
+    ensureDemoEnvActive(dest);
     if (!hasModeFlag) {
       processedArgs = ['--test', ...processedArgs];
     }
