@@ -577,9 +577,9 @@ http-forge qa --path ./backend --collection "My API" --base-url $STAGING_URL \
 
 ---
 
-### `refresh-agents-md`
+### `refresh-agents-md` (alias: `ensure-workspace`)
 
-Check whether the versioned `.http-forge/AGENTS.md` AI agent guide is stale. Dry-run by default (nothing is written); pass `--apply` to back up the current guide to `AGENTS.md.bak` and write the latest template. Same refresh as the VS Code `HTTP Forge: Refresh AI Agent Guide` command.
+Check whether the versioned `.http-forge/AGENTS.md` AI agent guide is stale. Dry-run by default (nothing is written); pass `--apply` to back up the current guide to `AGENTS.md.bak` and write the latest template. Same refresh as the VS Code `HTTP Forge: Refresh AI Agent Guide` command. `ensure-workspace` is a non-destructive alias that emphasizes it only creates missing support files and refreshes the guide.
 
 ```bash
 # Status only (guides without a version marker report currentVersion 0 / stale)

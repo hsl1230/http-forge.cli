@@ -89,15 +89,18 @@ export async function handleRefreshAgentsMd(args: string[]): Promise<void> {
 
 function printUsage(): void {
   process.stdout.write(`
-Usage: http-forge refresh-agents-md [--workspace <root>] [--apply] [--output json|table]
+Usage: http-forge refresh-agents-md|ensure-workspace [--workspace <root>] [--apply] [--output json|table]
 
-Check whether the versioned .http-forge/AGENTS.md AI agent guide is stale.
+Refresh or create the versioned .http-forge workspace guide and supporting files.
 Dry-run by default (nothing is written); pass --apply to back up the current
-guide to AGENTS.md.bak and write the latest template.
+guide to AGENTS.md.bak and write the latest template. --apply also ensures
+.http-forge/http-forge.config.json, .http-forge/assets/jsconfig.json,
+.http-forge/assets/http-forge-globals.d.ts, and
+.http-forge/assets/lib/package.json exist (without overwriting them).
 
 Options:
   --workspace, -w <path>  Workspace root (default: $HTTP_FORGE_WORKSPACE or cwd)
-  --apply                 Back up and rewrite the guide (default: status only)
+  --apply                 Back up and rewrite the guide; ensure support files
   --output json|table     Output format (default: json)
   --json                  Short for --output json
   -h, --help              Show this help

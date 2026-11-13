@@ -200,6 +200,7 @@ export async function main(): Promise<void> {
         break;
 
       case 'refresh-agents-md':
+      case 'ensure-workspace':
         if (isHelpFlag(subArgs[0])) {
           await handleRefreshAgentsMd(['--help']);
           break;
@@ -481,7 +482,8 @@ COMMANDS:
       --output <fmt>      Output format: json or table (default: table)
     Exit codes: 0 pass/dry-run, 1 assertion failures, 2 infra error, 3 drift
 
-  refresh-agents-md       Check whether .http-forge/AGENTS.md is stale (dry-run)
+  refresh-agents-md       Check/refresh .http-forge/AGENTS.md and ensure support files
+  ensure-workspace        Alias for refresh-agents-md (non-destructive)
     Options:
       --workspace <path>  Workspace root (default: $HTTP_FORGE_WORKSPACE or cwd)
       --apply             Back up to AGENTS.md.bak and write the latest template
