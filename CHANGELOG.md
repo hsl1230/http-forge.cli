@@ -5,6 +5,19 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.4 - 2026-11-16
+
+### Changed
+
+- Upgraded `@http-forge/core` to `^1.0.4`, inheriting script debugging support (`vm.Script` with filename), full Chai expect chain in `http-forge-globals.d.ts`, Postman-compatible globals, auto-generated `.github/copilot-instructions.md` and `llms.txt`, and `@types/node` in default `lib/package.json`.
+
+## 1.0.3 - 2026-11-13
+
+### Changed
+
+- Inherited from `@http-forge/core` ^1.0.3: full Chai-style expect chain and Postman-compatible globals in `http-forge-globals.d.ts`, MCP `list_documentation` and `get_documentation` tools, AGENTS.md template extracted to `templates/AGENTS.md` (reduced bundle size), auto-generated `.github/copilot-instructions.md` and `llms.txt` in user projects, `@types/node` and Postman-compatible libraries in default `lib/package.json`.
+
+
 ## 1.0.2 - 2026-11-09
 
 ### Added
@@ -13,8 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Upgraded `@http-forge/core` to `^1.0.2`, inheriting request-body hydration for lazy-loaded `body.json` files during collection, request, and suite execution.
-- Inherited from `@http-forge/core` ^1.0.3: full Chai-style expect chain and Postman-compatible globals in `http-forge-globals.d.ts`, MCP `list_documentation` and `get_documentation` tools, AGENTS.md template extracted to `templates/AGENTS.md` (reduced bundle size), auto-generated `.github/copilot-instructions.md` and `llms.txt` in user projects, `@types/node` and Postman-compatible libraries in default `lib/package.json`.
+- Upgraded `@http-forge/core` to `^1.0.3`, inheriting request-body hydration for lazy-loaded `body.json` files during collection, request, and suite execution.
 
 ## 1.0.1 - 2026-10-29
 
