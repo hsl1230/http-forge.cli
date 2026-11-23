@@ -893,7 +893,7 @@ http-forge run suite smoke-tests \
   --var BASE_URL=https://staging.example.com
 ```
 
-**Secret providers** — reference secrets from AWS Secrets Manager, Azure Key Vault, GCP Secret Manager, HashiCorp Vault, 1Password, or Doppler using `{{secret:alias/path}}`. Credentials come from the environment (env vars, cloud identity, CLI session) — never hardcoded.
+**Secret providers** — reference secrets from AWS Secrets Manager, Azure Key Vault, GCP Secret Manager, HashiCorp Vault, 1Password, or Doppler using `{{secret:alias/path}}`. Use dot-notation for nested JSON values: `{{secret:alias/secret-name.db.password}}` or `{{secret:alias/secret-name.items[0].name}}`. Credentials come from the environment (env vars, cloud identity, CLI session) — never hardcoded. Raw values are cached with a 5-minute TTL and cleared at the start of each run.
 
 ---
 

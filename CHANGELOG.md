@@ -5,6 +5,20 @@ All notable changes to @http-forge/cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.8 - 2026-11-23
+
+### Changed
+
+- Upgraded `@http-forge/core` to `^1.0.8`.
+
+## 1.0.7 - 2026-11-20
+
+### Changed
+
+- Upgraded `@http-forge/core` to `^1.0.7`
+- Inheriting universal JSON secret bundling and caching across all secret providers.
+- Inheriting the cache race condition fix.
+
 ## 1.0.6 - 2026-11-18
 
 ### Changed
