@@ -36,5 +36,7 @@ export {
 } from './commands/run';
 export { handleSchedule } from './commands/schedule';
 export { handleSuggestEnv } from './commands/suggest-env';
+export { handleMockServer } from './commands/mock-server';
+export { handleGenerateFromHar } from './commands/generate-from-har';
 export { handleInit } from './commands/init';
 

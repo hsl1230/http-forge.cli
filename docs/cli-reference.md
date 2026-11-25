@@ -185,6 +185,16 @@ If a folder name itself contains `/`, separate folder levels with ` / ` in the u
 
 `--env` is a short form of `--environment`. Both default to `$HTTP_FORGE_ENV` when not set.
 
+### `mock` command
+
+Start a local mock server from a collection:
+
+```bash
+http-forge mock --collection "Payments API" --port 3001
+```
+
+Serves mock JSON responses for each request in the collection. Useful for frontend development and testing before the backend is ready.
+
 #### Path-based dispatch
 
 You can also pass a workspace-relative **file path** instead of a type + name pair. HTTP Forge detects the run type from the target file:

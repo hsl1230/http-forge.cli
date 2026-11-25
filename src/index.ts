@@ -34,7 +34,9 @@ import {
   handleReview,
   handleSchedule,
   handleSuggestEnv,
-  handleInit
+  handleInit,
+  handleGenerateFromHar,
+  handleMockServer
 } from './commands';
 
 import * as fs from 'fs';
@@ -166,6 +168,22 @@ export async function main(): Promise<void> {
           break;
         }
         await handleInit(subArgs);
+        break;
+
+      case 'mock':
+        if (isHelpFlag(subArgs[0])) {
+          await handleMockServer(['--help']);
+          break;
+        }
+        await handleMockServer(subArgs);
+        break;
+
+      case 'generate-from-har':
+        if (isHelpFlag(subArgs[0])) {
+          await handleGenerateFromHar(['--help']);
+          break;
+        }
+        await handleGenerateFromHar(subArgs);
         break;
 
       case 'discover':
