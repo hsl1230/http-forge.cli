@@ -56,7 +56,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@http-forge/codegen": "^0.1.10",
+    "@http-forge/codegen": "^0.1.11",
     "@http-forge/core": "^1.0.9",
     "java-parser": "^0.3.2",
     "socket.io-client": "^4.8.1",
