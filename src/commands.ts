@@ -36,4 +36,5 @@ export {
 } from './commands/run';
 export { handleSchedule } from './commands/schedule';
 export { handleSuggestEnv } from './commands/suggest-env';
+export { handleInit } from './commands/init';
 

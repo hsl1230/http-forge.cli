@@ -33,7 +33,8 @@ import {
   handleRunGroup,
   handleReview,
   handleSchedule,
-  handleSuggestEnv
+  handleSuggestEnv,
+  handleInit
 } from './commands';
 
 import * as fs from 'fs';
@@ -157,6 +158,14 @@ export async function main(): Promise<void> {
           break;
         }
         await handleArchitect(subArgs);
+        break;
+
+      case 'init':
+        if (isHelpFlag(subArgs[0])) {
+          await handleInit(['--help']);
+          break;
+        }
+        await handleInit(subArgs);
         break;
 
       case 'discover':

@@ -32,6 +32,7 @@ export interface ParsedArgs {
   reporters: Array<{ name: string; path?: string }>;
   exitCode: boolean;
   output: 'json' | 'table';
+  agent?: boolean;
 }
 
 function normalizeWorkspacePath(workspacePath: string): string {
@@ -59,6 +60,7 @@ export function parseArgs(args: string[]): ParsedArgs {
     reporters: [],
     exitCode: false,
     output: 'json',
+    agent: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -117,6 +119,9 @@ export function parseArgs(args: string[]): ParsedArgs {
       opts.exitCode = true;
     } else if (arg === '--json') {
       // --json is a shorthand for --output json
+      opts.output = 'json';
+    } else if (arg === '--agent') {
+      opts.agent = true;
       opts.output = 'json';
     } else if (arg === '--output' && i + 1 < args.length) {
       const out = args[++i];
@@ -282,4 +287,36 @@ export function finalizeCiReports(result: unknown, opts: ParsedArgs): void {
   if (opts.exitCode && !runAllPassed(result)) {
     process.exit(1);
   }
+}
+
+/**
+ * Format a run result for AI agent consumption.
+ * Produces structured JSON with actionable nextSteps.
+ */
+export function formatAgentOutput(result: any): string {
+  const failed = (result?.failedRequests || []).map((r: any) => ({
+    name: r.name || r.requestName || 'Unknown',
+    method: r.method || r.requestMethod || 'GET',
+    url: r.url || r.requestUrl || '',
+    status: r.status || r.statusCode || 0,
+    error: r.error || r.errorMessage || (r.status >= 400 ? `HTTP ${r.status}` : ''),
+    suggestion: r.suggestion || '',
+  }));
+
+  const nextSteps: string[] = [];
+  if (failed.length > 0) {
+    nextSteps.push(`Fix ${failed.length} failed request(s): ${failed.map((f: any) => f.name).join(', ')}`);
+    nextSteps.push('Re-run with: http-forge run suite "<suite>" --env <env> --agent');
+  } else {
+    nextSteps.push('All requests passed. No further action needed.');
+  }
+
+  const output = {
+    status: failed.length > 0 ? 'failed' : 'completed',
+    summary: `${result?.passedCount ?? 0}/${result?.totalCount ?? 0} passed, ${failed.length} failed`,
+    failedRequests: failed,
+    nextSteps,
+  };
+
+  return JSON.stringify(output, null, 2);
 }

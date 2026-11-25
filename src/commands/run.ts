@@ -24,6 +24,7 @@ import {
   mergeProcessEnv,
   outputResult,
   parseArgs,
+  formatAgentOutput,
 } from '../output/format';
 
 // ────────────────────────────────────────────────────────
@@ -245,7 +246,11 @@ export async function handleRunSuite(args: string[]): Promise<void> {
         include: opts.include,
         reporters: opts.reporters.map((r) => r.name),
       });
-      outputResult(result, opts.output);
+      if (opts.agent) {
+        console.log(formatAgentOutput(result));
+      } else {
+        outputResult(result, opts.output);
+      }
       finalizeCiReports(result, opts);
     } else {
       const result = await runSuites({
@@ -262,7 +267,11 @@ export async function handleRunSuite(args: string[]): Promise<void> {
         include: opts.include,
         reporters: opts.reporters.map((r) => r.name),
       });
-      outputResult(result, opts.output);
+      if (opts.agent) {
+        console.log(formatAgentOutput(result));
+      } else {
+        outputResult(result, opts.output);
+      }
       finalizeCiReports(result, opts);
     }
   } catch (err) {
@@ -465,6 +474,7 @@ Options:
   --include <field>    Extra output fields
   --output json|table  Display format (default: json)
   --json               Short for --output json
+  --agent              LLM-friendly structured output with next steps
 
 Examples:
   http-forge run collection "Auth Flow" --env staging
