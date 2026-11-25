@@ -165,6 +165,15 @@ http-forge run collection "Auth Flow" --env staging
 # Run a test suite by name or id
 http-forge run suite "Regression" --env prod --stop-on-error --exit-code
 
+# Run multiple test suites as a single combined report
+http-forge run suite --suites "Login Flow,Token Refresh,Logout" --env prod
+
+# Run all test suites
+http-forge run suite --all-suites --env prod
+
+# Run all suites in a folder
+http-forge run suite --suite-folder "initialization" --env prod
+
 # Run a single request (needs --collection)
 http-forge run request "Login" --collection "Auth" --env dev
 

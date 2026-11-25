@@ -14,7 +14,7 @@
  *   http-forge run collections/my-api/requests/login
  */
 
-import { createNodeContainer, runCollection, runFolder, runRequest, runSuite } from '@http-forge/core';
+import { createNodeContainer, runCollection, runFolder, runRequest, runSuite, runSuites } from '@http-forge/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
@@ -177,28 +177,94 @@ export async function handleRunSuite(args: string[]): Promise<void> {
   mergeProcessEnv(opts);
   const restore = installStdoutGuard();
 
-  if (!opts.suite) {
-    console.error('Error: --suite is required');
+  const runMultiple = opts.suites || opts.allSuites || opts.suiteFolder;
+  if (!runMultiple && !opts.suite) {
+    console.error('Error: --suite, --suites, --all-suites, or --suite-folder is required');
     process.exit(2);
   }
 
   try {
-    const suiteId = await resolveSuiteId(opts.workspace, opts.suite);
-    const result = await runSuite({
-      workspaceFolder: opts.workspace,
-      suiteId,
-      environment: opts.environment,
-      variables: opts.variables,
-      iterations: opts.iterations,
-      concurrency: opts.concurrency,
-      stopOnError: opts.stopOnError,
-      delay: opts.delay,
-      requestFilter: opts.requestFilter,
-      include: opts.include,
-      reporters: opts.reporters.map((r) => r.name),
-    });
-    outputResult(result, opts.output);
-    finalizeCiReports(result, opts);
+    let suiteIds: string[] = [];
+    if (opts.allSuites) {
+      const container = createNodeContainer(opts.workspace);
+      try {
+        const suites = await container.testSuite.getAllSuites();
+        suiteIds = suites.filter(s => !s.isTemporary).map(s => s.id);
+      } finally {
+        container.dispose();
+      }
+    } else if (opts.suiteFolder) {
+      const container = createNodeContainer(opts.workspace);
+      try {
+        const folder = opts.suiteFolder;
+        const prefix = folder ? `${folder}/` : '';
+        const suites = await container.testSuite.getAllSuites();
+        suiteIds = suites
+          .filter(s => !s.isTemporary && (s.folderPath === folder || (s.folderPath || '').startsWith(prefix)))
+          .map(s => s.id);
+      } finally {
+        container.dispose();
+      }
+    } else if (opts.suites) {
+      const refs = opts.suites.split(',').map(s => s.trim()).filter(Boolean);
+      const container = createNodeContainer(opts.workspace);
+      try {
+        const suites = await container.testSuite.getAllSuites();
+        suiteIds = refs.map(ref => {
+            if (suites.find(s => s.id === ref)) return ref;
+            const byName = suites.find(s => s.name === ref);
+            if (byName) return byName.id;
+            const byNameCI = suites.find(s => s.name.toLowerCase() === ref.toLowerCase());
+            if (byNameCI) return byNameCI.id;
+            return ref;
+        });
+      } finally {
+        container.dispose();
+      }
+    } else {
+      const suiteId = await resolveSuiteId(opts.workspace, opts.suite!);
+      suiteIds = [suiteId];
+    }
+
+    if (suiteIds.length === 0) {
+      console.error('Error: no suites found');
+      process.exit(2);
+    }
+
+    if (suiteIds.length === 1) {
+      const result = await runSuite({
+        workspaceFolder: opts.workspace,
+        suiteId: suiteIds[0],
+        environment: opts.environment,
+        variables: opts.variables,
+        iterations: opts.iterations,
+        concurrency: opts.concurrency,
+        stopOnError: opts.stopOnError,
+        delay: opts.delay,
+        requestFilter: opts.requestFilter,
+        include: opts.include,
+        reporters: opts.reporters.map((r) => r.name),
+      });
+      outputResult(result, opts.output);
+      finalizeCiReports(result, opts);
+    } else {
+      const result = await runSuites({
+        workspaceFolder: opts.workspace,
+        suiteIds,
+        name: opts.suites ? `Suites: ${opts.suites}` : opts.suiteFolder ? `Folder: ${opts.suiteFolder}` : 'All Test Suites',
+        environment: opts.environment,
+        variables: opts.variables,
+        iterations: opts.iterations,
+        concurrency: opts.concurrency,
+        stopOnError: opts.stopOnError,
+        delay: opts.delay,
+        requestFilter: opts.requestFilter,
+        include: opts.include,
+        reporters: opts.reporters.map((r) => r.name),
+      });
+      outputResult(result, opts.output);
+      finalizeCiReports(result, opts);
+    }
   } catch (err) {
     console.error('Error:', (err as Error).message);
     process.exit(2);
@@ -331,7 +397,7 @@ async function handleRunPath(relPath: string, remainingArgs: string[]): Promise<
 function extractFirstPositional(args: string[]): [string | undefined, string[]] {
   const flagsWithValues = new Set([
     '--workspace', '--env', '--environment', '--collection', '--request', '--suite',
-    '--folder', '--output', '--var', '--include', '--reporter', '--out',
+    '--folder', '--suite-folder', '--output', '--var', '--include', '--reporter', '--out',
     '--delay', '--iterations', '--concurrency', '--request-filter',
   ]);
 

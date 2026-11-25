@@ -15,7 +15,10 @@ export interface ParsedArgs {
   collection?: string;
   request?: string;
   suite?: string;
+  suites?: string;
+  allSuites?: boolean;
   folder?: string;
+  suiteFolder?: string;
   recursive: boolean;
   environment?: string;
   variables: Record<string, unknown>;
@@ -69,8 +72,14 @@ export function parseArgs(args: string[]): ParsedArgs {
       opts.request = args[++i];
     } else if (arg === '--suite' && i + 1 < args.length) {
       opts.suite = args[++i];
+    } else if (arg === '--suites' && i + 1 < args.length) {
+      opts.suites = args[++i];
+    } else if (arg === '--all-suites') {
+      opts.allSuites = true;
     } else if (arg === '--folder' && i + 1 < args.length) {
       opts.folder = args[++i];
+    } else if (arg === '--suite-folder' && i + 1 < args.length) {
+      opts.suiteFolder = args[++i];
     } else if (arg === '--recursive' && i + 1 < args.length) {
       opts.recursive = args[++i] !== 'false';
     } else if (arg === '--no-recursive') {
